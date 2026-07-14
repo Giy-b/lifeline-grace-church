@@ -466,21 +466,37 @@ function Home({
               padding: "20px",
             }}
           >
-            <img
-              src={galleryImages[currentImage]}
-              alt="Church Gallery"
-              style={{
-                width: "100%",
-                maxWidth: "1200px",
-                height: "650px",
-                objectFit: "contain",
-              
-                borderRadius: "15px",
-              
-                opacity: fade ? 1 : 0,
-                transition: "opacity 1s ease-in-out",
-              }}
-            />
+            {galleryImages.length > 0 ? (
+              <img
+                src={galleryImages[currentImage]}
+                alt="Church Gallery"
+                style={{
+                  width: "100%",
+                  maxWidth: "1200px",
+                  height: "650px",
+                  objectFit: "contain",
+                  borderRadius: "15px",
+                  opacity: fade ? 1 : 0,
+                  transition: "opacity 1s ease-in-out",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "1200px",
+                  height: "360px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#e5e7eb",
+                  color: "#374151",
+                  borderRadius: "15px",
+                }}
+              >
+                Church gallery images will appear here.
+              </div>
+            )}
           </div>          {/* MOTTO & QUOTE */}
           <div
             style={{

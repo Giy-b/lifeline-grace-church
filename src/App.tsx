@@ -10,6 +10,7 @@ import MediaDashboard from "./pages/MediaDashboard";
 import MembersDashboard from "./components/MembersDashboard";
 import ChurchOversight from "./components/ChurchOversight";
 import ManageBranchGallery from "./components/ManageBranchGallery";
+import ManageHomeGallery from "./components/ManageHomeGallery";
 import MemberLogin from "./components/MemberLogin";
 import MemberRegistration from "./components/MemberRegistration";
 import MembersPortalDashboard from "./components/MembersPortalDashboard";
@@ -33,17 +34,6 @@ type BranchImage = {
   image_path: string;
 };
 
-const galleryImages = [
-  "/gallery1.png",
-  "/gallery2.png",
-  "/gallery3.png",
-  "/gallery4.png",
-  "/gallery5.png",
-  "/gallery6.png",
-  "/gallery7.png",
-  "/gallery8.png",
-];
-
 function App() {
 const [loggedInMember, setLoggedInMember] = useState<LoggedInMember | null>(null);
 const [isBishopAccess, setIsBishopAccess] = useState(false);
@@ -65,6 +55,7 @@ const [liveLink, setLiveLink] = useState("");
   const [bishopUsername, setBishopUsername] = useState("");
   const [bishopPassword, setBishopPassword] = useState("");
   const [currentImage, setCurrentImage] = useState(0);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [fade, setFade] = useState(true);
   const [announcementDepartment, setAnnouncementDepartment] = useState("Church");
 const [announcementBackPage, setAnnouncementBackPage] = useState("secretary-dashboard");
@@ -95,7 +86,23 @@ const churchDepartments = [
   "Pastoral",
   "Youth",
 ];
-  useEffect(() => {
+useEffect(() => {
+  fetch(`${API_BASE_URL}/home-gallery`)
+    .then((res) => res.json())
+    .then((data) => {
+      setGalleryImages(
+        data.map((image: BranchImage) =>
+          `${API_BASE_URL}/uploads/${image.image_path}`
+        )
+      );
+      setCurrentImage(0);
+    })
+    .catch(() => setGalleryImages([]));
+}, []);
+
+useEffect(() => {
+  if (galleryImages.length < 2) return;
+
   const interval = setInterval(() => {
     setFade(false);
 
@@ -108,7 +115,7 @@ const churchDepartments = [
   }, 3000);
 
   return () => clearInterval(interval);
-}, []);
+}, [galleryImages]);
 useEffect(() => {
   fetch(`${API_BASE_URL}/leaders`)
     .then((res) => res.json())
@@ -391,6 +398,9 @@ if (page === "manage-branch-gallery") {
       setPage={setPage}
     />
   );
+}
+if (page === "manage-home-gallery") {
+  return <ManageHomeGallery setPage={setPage} />;
 }
 if (page === "members-dashboard") {
   return (

@@ -294,6 +294,18 @@ def ensure_core_tables():
             """)
         )
 
+        connection.execute(
+            text(f"""
+                CREATE TABLE IF NOT EXISTS home_gallery
+                (
+                    id {id_column},
+                    image_name VARCHAR(255),
+                    image_path VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        )
+
         for branch in ["Bungoma", "Ranje", "Kimilili", "Nairobi", "Matunda"]:
             exists = connection.execute(
                 text("SELECT id FROM branches WHERE branch_name = :branch"),
@@ -2926,6 +2938,70 @@ def get_departments():
 # =========================
 # BRANCH GALLERY
 # =========================
+
+@app.get("/home-gallery")
+def get_home_gallery():
+    with engine.connect() as connection:
+        result = connection.execute(
+            text("""
+                SELECT id, image_name, image_path
+                FROM home_gallery
+                ORDER BY id DESC
+            """)
+        )
+
+        return [
+            {
+                "id": row.id,
+                "image_name": row.image_name,
+                "image_path": row.image_path,
+            }
+            for row in result
+        ]
+
+
+@app.post("/upload-home-images")
+async def upload_home_images(files: List[UploadFile] = File(...)):
+    for file in files:
+        filename = f"{uuid.uuid4()}_{file.filename}"
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        with engine.begin() as connection:
+            connection.execute(
+                text("""
+                    INSERT INTO home_gallery (image_name, image_path)
+                    VALUES (:image_name, :image_path)
+                """),
+                {"image_name": file.filename, "image_path": filename},
+            )
+
+    return {"message": "Home gallery images uploaded successfully"}
+
+
+@app.delete("/home-gallery/{image_id}")
+def delete_home_image(image_id: int):
+    with engine.begin() as connection:
+        image = connection.execute(
+            text("SELECT image_path FROM home_gallery WHERE id = :id"),
+            {"id": image_id},
+        ).fetchone()
+
+        if not image:
+            return {"message": "Image not found"}
+
+        file_path = os.path.join(UPLOAD_FOLDER, image.image_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        connection.execute(
+            text("DELETE FROM home_gallery WHERE id = :id"),
+            {"id": image_id},
+        )
+
+    return {"message": "Image deleted successfully"}
 
 @app.get("/branch-gallery/{branch}")
 def get_branch_gallery(branch:str):

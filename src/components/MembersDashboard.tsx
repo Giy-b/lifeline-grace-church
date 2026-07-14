@@ -167,6 +167,22 @@ export default function MembersDashboard({
     alert(data.message);
   };
 
+  const uploadHomeGallery = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files) return;
+
+    const formData = new FormData();
+    Array.from(event.target.files).forEach((file) => formData.append("files", file));
+
+    const response = await fetch(`${API_BASE_URL}/upload-home-images`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+    event.target.value = "";
+    alert(data.message);
+  };
+
   return (
     <div
       style={{
@@ -432,6 +448,29 @@ export default function MembersDashboard({
                 style={actionButtonStyle("#7b1fa2")}
               >
                 Manage Branch Gallery
+              </button>
+
+              <input
+                type="file"
+                id="homeGalleryUpload"
+                multiple
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={uploadHomeGallery}
+              />
+
+              <button
+                onClick={() => document.getElementById("homeGalleryUpload")?.click()}
+                style={actionButtonStyle("#0f766e")}
+              >
+                Upload Home Gallery
+              </button>
+
+              <button
+                onClick={() => setPage("manage-home-gallery")}
+                style={actionButtonStyle("#b45309")}
+              >
+                Manage Home Gallery
               </button>
 
               <button onClick={deleteMember} style={actionButtonStyle("#dc2626")}>
