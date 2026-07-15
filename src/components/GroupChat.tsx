@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config/api";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type GroupChatProps = {
   selectedBranch: string;
@@ -32,7 +32,6 @@ export default function GroupChat({
 }: GroupChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [search, setSearch] = useState("");
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(null);
@@ -62,20 +61,6 @@ export default function GroupChat({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
-
-  const filteredMessages = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return messages;
-
-    return messages.filter((message) =>
-      [message.sender_name, message.sender_type, message.message]
-        .join(" ")
-        .toLowerCase()
-        .includes(term)
-    );
-  }, [messages, search]);
-
-  const latestMessage = messages[messages.length - 1];
 
   const openFilePicker = () => {
     fileInputRef.current?.click();
@@ -192,6 +177,7 @@ export default function GroupChat({
 
   return (
     <div
+      className="group-chat"
       style={{
         height: "100vh",
         display: "flex",
@@ -200,74 +186,6 @@ export default function GroupChat({
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <aside
-        style={{
-          width: "330px",
-          minWidth: "330px",
-          background: "#f7f8f6",
-          borderRight: "1px solid #d3d7d2",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ background: "#075e54", color: "white", padding: "18px 20px" }}>
-          <div style={{ fontSize: "21px", fontWeight: 800 }}>Church Chats</div>
-          <div style={{ fontSize: "13px", opacity: 0.85, marginTop: "4px" }}>
-            {selectedBranch} Branch
-          </div>
-        </div>
-
-        <div style={{ padding: "12px", borderBottom: "1px solid #e1e5df" }}>
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search this group"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "11px 14px",
-              borderRadius: "999px",
-              border: "1px solid #cfd7d2",
-              outline: "none",
-              fontSize: "14px",
-            }}
-          />
-        </div>
-
-        <div
-          style={{
-            padding: "16px",
-            background: "white",
-            borderBottom: "1px solid #e1e5df",
-            borderLeft: "4px solid #25d366",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
-            <strong>{roomName}</strong>
-            <span style={{ color: "#6b7280", fontSize: "12px", whiteSpace: "nowrap" }}>
-              {latestMessage
-                ? new Date(latestMessage.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : ""}
-            </span>
-          </div>
-          <div
-            style={{
-              color: "#667085",
-              fontSize: "13px",
-              marginTop: "6px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {latestMessage ? latestMessage.message : "No messages yet"}
-          </div>
-        </div>
-      </aside>
-
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <header
           style={{
@@ -311,7 +229,7 @@ export default function GroupChat({
             background: "#efe7dd",
           }}
         >
-          {filteredMessages.map((message) => {
+          {messages.map((message) => {
             const mine = message.sender_name === displayName;
 
             return (
