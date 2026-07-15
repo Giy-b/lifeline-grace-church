@@ -1,0 +1,8 @@
+[tools]
+python = "3.11.11"
+
+[settings.python]
+# Railway's Railpack builder uses mise to install Python. Disable GitHub
+# attestation lookups because the upstream Python 3.11 artifact may not expose
+# attestations in every build environment.
+github_attestations = false

@@ -18,6 +18,10 @@ than detecting the root frontend `package.json` as a Node.js application:
 - Build command: `pip install -r requirements.txt`
 - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
+`Backend/mise.toml` pins Railway's Python runtime to `3.11.11` and disables
+Mise's Python GitHub artifact-attestation lookup. `runtime.txt` contains the
+same version as a fallback for Python build detection.
+
 Set these Railway variables before deploying:
 
 - `DATABASE_URL`: Railway PostgreSQL connection string (recommended for production)

@@ -1,5 +1,7 @@
 [build]
 builder = "RAILPACK"
+# Python is pinned in mise.toml. The Mise Python attestation check is disabled
+# there to avoid GitHub artifact-attestation lookup failures during Railpack builds.
 buildCommand = "pip install -r requirements.txt"
 
 [deploy]
