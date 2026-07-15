@@ -2242,6 +2242,24 @@ def home():
     }
 
 
+@app.get("/health")
+def health_check():
+    """Report healthy only when the configured database is reachable."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection is unavailable",
+        ) from error
+
+    return {
+        "status": "ok",
+        "database": engine.dialect.name,
+    }
+
+
 
 
 
