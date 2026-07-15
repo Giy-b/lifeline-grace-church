@@ -4,6 +4,29 @@ Target setup:
 
 Users -> Netlify React website -> Render FastAPI API -> PostgreSQL database
 
+## Railway FastAPI API
+
+This repository contains both the React frontend and the FastAPI backend. Configure
+the Railway **backend service** with these settings so it deploys `Backend`, rather
+than detecting the root frontend `package.json` as a Node.js application:
+
+- Root Directory: `Backend`
+- Config File Path: `/Backend/railway.toml`
+
+`Backend/railway.toml` uses Railpack and defines:
+
+- Build command: `pip install -r requirements.txt`
+- Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+Set these Railway variables before deploying:
+
+- `DATABASE_URL`: Railway PostgreSQL connection string (recommended for production)
+- `FRONTEND_ORIGINS`: comma-separated frontend origins, for example `https://your-site.netlify.app`
+- `DEFAULT_BISHOP_USERNAME`, `DEFAULT_BISHOP_PASSWORD`, `DEFAULT_BISHOP_FULL_NAME`, and `DEFAULT_BISHOP_PHONE`: initial administrator details
+
+Generate a public Railway domain for the service after it deploys. The healthcheck
+uses `/`, which returns the API status response.
+
 ## 1. Render API and PostgreSQL
 
 Create a Render Blueprint from this repository using `render.yaml`, or create them manually:
