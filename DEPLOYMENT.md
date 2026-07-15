@@ -25,7 +25,7 @@ same version as a fallback for Python build detection.
 Set these Railway variables before deploying:
 
 - `DATABASE_URL`: Railway PostgreSQL connection string (recommended for production)
-- `FRONTEND_ORIGINS`: comma-separated frontend origins, for example `https://your-site.netlify.app`
+- `FRONTEND_ORIGINS`: optional comma-separated additional frontend origins; `https://lifeline-grace-church.vercel.app`, `http://localhost:5173`, and `http://127.0.0.1:5173` are already allowed
 - `DEFAULT_BISHOP_USERNAME`, `DEFAULT_BISHOP_PASSWORD`, `DEFAULT_BISHOP_FULL_NAME`, and `DEFAULT_BISHOP_PHONE`: initial administrator details
 
 Generate a public Railway domain for the service after it deploys. The healthcheck
@@ -64,6 +64,14 @@ Set this Netlify environment variable:
 - `VITE_API_URL`: your Render API URL, for example `https://your-render-api.onrender.com`
 
 `netlify.toml` already includes the build settings and SPA redirect.
+
+## Vercel Frontend
+
+For a Vercel deployment, set `VITE_API_URL` in the Vercel project environment
+variables to the public Railway backend URL, for example
+`https://your-service.up.railway.app` (without a trailing slash). Add it to the
+Production environment, then redeploy Vercel so Vite includes the value in the
+frontend build. Every frontend API request uses this value.
 
 ## 3. After Deploying
 

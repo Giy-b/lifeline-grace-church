@@ -40,16 +40,23 @@ app.mount(
 # CORS
 # =========================
 
+DEFAULT_FRONTEND_ORIGINS = {
+    "https://lifeline-grace-church.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+
+configured_frontend_origins = {
+    origin.strip().rstrip("/")
+    for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+    if origin.strip()
+}
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv(
-            "FRONTEND_ORIGINS",
-            "http://localhost:5173,http://127.0.0.1:5173",
-        ).split(",")
-        if origin.strip()
-    ],
+    # Keep local development and the production Vercel site available even
+    # when Railway defines FRONTEND_ORIGINS for additional custom domains.
+    allow_origins=sorted(DEFAULT_FRONTEND_ORIGINS | configured_frontend_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
