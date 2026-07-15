@@ -1,0 +1,11 @@
+.git
+.venv
+node_modules
+dist
+uploads-backup
+Backend/.env
+Backend/uploads
+Backend/__pycache__
+**/__pycache__
+*.py[cod]
+*.db
