@@ -2247,7 +2247,13 @@ def health_check():
     """Report healthy only when the configured database is reachable."""
     try:
         with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+            if engine.dialect.name == "postgresql":
+                database_name = connection.execute(
+                    text("SELECT current_database()")
+                ).scalar_one()
+            else:
+                connection.execute(text("SELECT 1"))
+                database_name = "sqlite"
     except Exception as error:
         raise HTTPException(
             status_code=503,
@@ -2257,6 +2263,7 @@ def health_check():
     return {
         "status": "ok",
         "database": engine.dialect.name,
+        "database_name": database_name,
     }
 
 
