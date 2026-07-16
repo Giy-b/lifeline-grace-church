@@ -42,6 +42,8 @@ app.mount(
 
 DEFAULT_FRONTEND_ORIGINS = {
     "https://lifeline-grace-church.vercel.app",
+    "https://lifelinegrace.co.ke",
+    "https://www.lifelinegrace.co.ke",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 }

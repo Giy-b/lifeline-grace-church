@@ -25,7 +25,7 @@ same version as a fallback for Python build detection.
 Set these Railway variables before deploying:
 
 - `DATABASE_URL`: Railway PostgreSQL connection string (recommended for production)
-- `FRONTEND_ORIGINS`: optional comma-separated additional frontend origins; `https://lifeline-grace-church.vercel.app`, `http://localhost:5173`, and `http://127.0.0.1:5173` are already allowed
+- `FRONTEND_ORIGINS`: optional comma-separated additional frontend origins; `https://lifeline-grace-church.vercel.app`, `https://lifelinegrace.co.ke`, `https://www.lifelinegrace.co.ke`, `http://localhost:5173`, and `http://127.0.0.1:5173` are already allowed
 - `DEFAULT_BISHOP_USERNAME`, `DEFAULT_BISHOP_PASSWORD`, `DEFAULT_BISHOP_FULL_NAME`, and `DEFAULT_BISHOP_PHONE`: initial administrator details
 
 Generate a public Railway domain for the service after it deploys. The healthcheck
