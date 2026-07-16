@@ -9,9 +9,12 @@ import shutil
 import os
 import uuid
 import json
+import logging
+import sys
 from pathlib import Path
 
 
+logger = logging.getLogger("lifeline_grace.api")
 app = FastAPI()
 
 
@@ -54,15 +57,32 @@ configured_frontend_origins = {
     if origin.strip()
 }
 
+# ``FRONTEND_ORIGINS`` extends these safe defaults; it never replaces them.
+allow_origins = sorted(DEFAULT_FRONTEND_ORIGINS | configured_frontend_origins)
+
 app.add_middleware(
     CORSMiddleware,
     # Keep local development and the production Vercel site available even
     # when Railway defines FRONTEND_ORIGINS for additional custom domains.
-    allow_origins=sorted(DEFAULT_FRONTEND_ORIGINS | configured_frontend_origins),
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def log_runtime_configuration() -> None:
+    """Make the loaded application and effective CORS policy visible in Railway logs."""
+    logger.warning(
+        "API startup: module=%s file=%s uvicorn_command=%s "
+        "configured_frontend_origins=%s allow_origins=%s",
+        __name__,
+        Path(__file__).resolve(),
+        " ".join(sys.argv),
+        sorted(configured_frontend_origins),
+        allow_origins,
+    )
 
 
 
