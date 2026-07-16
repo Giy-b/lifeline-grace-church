@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -2286,6 +2286,16 @@ def health_check():
         "status": "ok",
         "database": engine.dialect.name,
         "database_name": database_name,
+    }
+
+
+@app.get("/cors-debug")
+async def cors_debug(request: Request):
+    """Temporary endpoint for inspecting proxy-forwarded CORS request headers."""
+    return {
+        "origin": request.headers.get("origin"),
+        "host": request.headers.get("host"),
+        "referer": request.headers.get("referer"),
     }
 
 
