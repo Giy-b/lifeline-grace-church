@@ -28,21 +28,30 @@ const blankRecord = () => ({
 
 const fieldPositions: Record<string, React.CSSProperties> = {
   child_name: { left: "34.5%", top: "40.5%", width: "57%", textAlign: "center" },
-  date_of_birth: { left: "33%", top: "50.5%", width: "25%" },
-  dedication_date: { left: "71.5%", top: "50.5%", width: "22%" },
-  dedication_place: { left: "28.5%", top: "58.5%", width: "66%" },
-  father_name: { left: "32.5%", top: "67.5%", width: "62%" },
-  mother_name: { left: "33.5%", top: "77.5%", width: "60%" },
-  pastor_name: { left: "43%", top: "86.5%", width: "34%" },
+  date_of_birth: { left: "35.5%", top: "50.5%", width: "20%" },
+  dedication_date: { left: "72%", top: "50.5%", width: "21%" },
+  dedication_place: { left: "35.5%", top: "58.5%", width: "58%" },
+  father_name: { left: "43%", top: "67.5%", width: "50%" },
+  mother_name: { left: "43%", top: "77.5%", width: "50%" },
+  pastor_name: { left: "43.5%", top: "86.5%", width: "33%" },
   certificate_number: { left: "85.2%", top: "24.2%", width: "12%", textAlign: "center", fontFamily: "Arial, sans-serif" },
 };
+
+// The original scanned certificate contains script labels beside the lines.
+// These masks leave a clean line-only area for the typed certificate details.
+const labelMasks: React.CSSProperties[] = [
+  { left: "28%", top: "66%", width: "14.5%", height: "6%", background: "#d9f7fa" },
+  { left: "28%", top: "76%", width: "14.5%", height: "6%", background: "#d9f7fa" },
+  { left: "28%", top: "84%", width: "15%", height: "6%", background: "#d9f7fa" },
+];
 
 function Certificate({ record }: { record: DedicationRecord }) {
   const values = record as unknown as Record<string, string>;
   return (
     <div style={{ position: "relative", width: "100%", aspectRatio: "820 / 357", background: "url('/dedication-certificate.png') center / 100% 100% no-repeat" }}>
+      {labelMasks.map((mask, index) => <span key={index} aria-hidden="true" style={{ position: "absolute", ...mask }} />)}
       {Object.entries(fieldPositions).map(([key, position]) => (
-        <span key={key} style={{ position: "absolute", ...position, fontSize: "clamp(6px, 1.65vw, 14px)", lineHeight: 1.1, color: "#111", fontFamily: key === "certificate_number" ? "Arial, sans-serif" : "Georgia, serif", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span key={key} style={{ position: "absolute", ...position, fontSize: "clamp(6px, 1.65vw, 14px)", lineHeight: 1.1, color: "#111827", fontFamily: "Arial, sans-serif", fontWeight: 600, fontStyle: "normal", letterSpacing: "0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {values[key]}
         </span>
       ))}
@@ -91,14 +100,17 @@ export default function DedicationRegister({ setPage, loggedInLeader }: Props) {
 
   const printCertificate = (record: DedicationRecord) => {
     setSelected(record);
+    const masks = labelMasks.map((mask) => {
+      const styles = Object.entries(mask).map(([property, value]) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}:${value}`).join(";");
+      return `<span aria-hidden="true" style="position:absolute;${styles}"></span>`;
+    }).join("");
     const fields = Object.entries(fieldPositions).map(([key, position]) => {
       const styles = Object.entries(position).map(([property, value]) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}:${value}`).join(";");
-      const font = key === "certificate_number" ? "Arial,sans-serif" : "Georgia,serif";
-      return `<span style="position:absolute;${styles};font:600 14px ${font};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111">${escapeHtml(record[key as keyof DedicationRecord] as string)}</span>`;
+      return `<span style="position:absolute;${styles};font:600 14px Arial,sans-serif;font-style:normal;letter-spacing:.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111827">${escapeHtml(record[key as keyof DedicationRecord] as string)}</span>`;
     }).join("");
     const printWindow = window.open("", "_blank", "width=1200,height=650");
     if (!printWindow) return alert("Allow pop-ups to print the certificate.");
-    printWindow.document.write(`<!doctype html><html><head><title>Dedication Certificate</title><style>@page{size:landscape;margin:0}html,body{margin:0;width:100%;height:100%}.certificate{position:relative;width:100vw;height:43.5366vw;background:url('${window.location.origin}/dedication-certificate.png') center/100% 100% no-repeat}@media print{.certificate{width:100vw;height:43.5366vw}}</style></head><body><div class="certificate">${fields}</div><script>window.onload=()=>window.print()</script></body></html>`);
+    printWindow.document.write(`<!doctype html><html><head><title>Dedication Certificate</title><style>@page{size:landscape;margin:0}html,body{margin:0;width:100%;height:100%}.certificate{position:relative;width:100vw;height:43.5366vw;background:url('${window.location.origin}/dedication-certificate.png') center/100% 100% no-repeat}@media print{.certificate{width:100vw;height:43.5366vw}}</style></head><body><div class="certificate">${masks}${fields}</div><script>window.onload=()=>window.print()</script></body></html>`);
     printWindow.document.close();
   };
 
