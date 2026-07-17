@@ -1,66 +1,20 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../config/api";
 
-type DedicationRecord = {
-  id: number;
-  child_name: string;
-  date_of_birth: string;
-  dedication_date: string;
-  dedication_place: string;
-  father_name: string;
-  mother_name: string;
-  certificate_number: string;
-  pastor_name: string;
-  branch: string;
-};
-
+type DedicationRecord = { id: number; child_name: string; date_of_birth: string; dedication_date: string; dedication_place: string; father_name: string; mother_name: string; certificate_number: string; pastor_name: string; branch: string };
 type Props = { setPage: (page: string) => void; loggedInLeader: { full_name?: string; branch?: string } | null };
 
-const blankRecord = () => ({
-  child_name: "",
-  date_of_birth: "",
-  dedication_date: new Date().toISOString().slice(0, 10),
-  dedication_place: "",
-  father_name: "",
-  mother_name: "",
-  certificate_number: "",
-});
-
-const fieldPositions: Record<string, React.CSSProperties> = {
-  child_name: { left: "34.5%", top: "40.5%", width: "57%", textAlign: "center" },
-  date_of_birth: { left: "35.5%", top: "50.5%", width: "20%" },
-  dedication_date: { left: "72%", top: "50.5%", width: "21%" },
-  dedication_place: { left: "35.5%", top: "58.5%", width: "58%" },
-  father_name: { left: "43%", top: "67.5%", width: "50%" },
-  mother_name: { left: "43%", top: "77.5%", width: "50%" },
-  pastor_name: { left: "43.5%", top: "86.5%", width: "33%" },
-  certificate_number: { left: "85.2%", top: "24.2%", width: "12%", textAlign: "center", fontFamily: "Arial, sans-serif" },
-};
-
-// The original scanned certificate contains script labels beside the lines.
-// These masks leave a clean line-only area for the typed certificate details.
-const labelMasks: React.CSSProperties[] = [
-  { left: "28%", top: "66%", width: "14.5%", height: "6%", background: "#d9f7fa" },
-  { left: "28%", top: "76%", width: "14.5%", height: "6%", background: "#d9f7fa" },
-  { left: "28%", top: "84%", width: "15%", height: "6%", background: "#d9f7fa" },
-];
+const blankRecord = () => ({ child_name: "", date_of_birth: "", dedication_date: new Date().toISOString().slice(0, 10), dedication_place: "", father_name: "", mother_name: "", certificate_number: "" });
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character] as string));
 
 function Certificate({ record }: { record: DedicationRecord }) {
-  const values = record as unknown as Record<string, string>;
-  return (
-    <div style={{ position: "relative", width: "100%", aspectRatio: "820 / 357", background: "url('/dedication-certificate.png') center / 100% 100% no-repeat" }}>
-      {labelMasks.map((mask, index) => <span key={index} aria-hidden="true" style={{ position: "absolute", ...mask }} />)}
-      {Object.entries(fieldPositions).map(([key, position]) => (
-        <span key={key} style={{ position: "absolute", ...position, fontSize: "clamp(6px, 1.65vw, 14px)", lineHeight: 1.1, color: "#111827", fontFamily: "Arial, sans-serif", fontWeight: 600, fontStyle: "normal", letterSpacing: "0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {values[key]}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character] as string));
+  const Field = ({ label, value, full = false }: { label: string; value: string; full?: boolean }) => <div style={{ gridColumn: full ? "1 / -1" : undefined, borderBottom: "1px solid #94a3b8", padding: "9px 0" }}><div style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em" }}>{label}</div><div style={{ color: "#0f172a", fontSize: 15, fontWeight: 600, marginTop: 3 }}>{value}</div></div>;
+  return <article style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #ffffff, #f0fdf4)", border: "10px solid #166534", outline: "2px solid #bbf7d0", outlineOffset: -18, padding: "34px clamp(24px, 5vw, 64px) 30px", color: "#0f172a", fontFamily: "Arial, sans-serif" }}>
+    <header style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 18, alignItems: "center", borderBottom: "2px solid #bbf7d0", paddingBottom: 18 }}><img src="/logo.png" alt="Lifeline Grace Church logo" style={{ width: 78, height: 78, objectFit: "contain" }} /><div><div style={{ color: "#166534", fontSize: "clamp(20px, 3.4vw, 38px)", fontWeight: 800, letterSpacing: "0.04em", lineHeight: 1 }}>LIFELINE GRACE CHURCH</div><div style={{ color: "#2563eb", fontSize: "clamp(9px, 1.3vw, 13px)", fontWeight: 700, letterSpacing: "0.09em", marginTop: 8 }}>SPIRITUAL INTEGRITY THROUGH EXCELLENCE IN MINISTRY</div><div style={{ fontSize: 12, fontWeight: 700, marginTop: 5 }}>P.O. BOX 722-50200</div></div><div style={{ border: "2px solid #166534", borderRadius: 8, padding: "10px 14px", minWidth: 110, textAlign: "center", background: "white" }}><div style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em" }}>CERTIFICATE NO.</div><div style={{ color: "#166534", fontSize: 18, fontWeight: 800, marginTop: 4 }}>{record.certificate_number}</div></div></header>
+    <div style={{ textAlign: "center", margin: "18px 0 14px" }}><div style={{ color: "#166534", fontSize: "clamp(18px, 2.7vw, 30px)", fontWeight: 800, letterSpacing: "0.08em" }}>CERTIFICATE OF DEDICATION</div><div style={{ marginTop: 7, color: "#475569", fontSize: 12 }}>This certifies that the following dedication has been recorded by Lifeline Grace Church.</div></div>
+    <section style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", columnGap: 34 }}><Field label="CHILD / CANDIDATE NAME" value={record.child_name} full /><Field label="DATE OF BIRTH" value={record.date_of_birth} /><Field label="DEDICATION DATE" value={record.dedication_date} /><Field label="DEDICATION LOCATION" value={record.dedication_place} full /><Field label="FATHER'S NAME" value={record.father_name} /><Field label="MOTHER'S NAME" value={record.mother_name} /></section>
+    <footer style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 34, marginTop: 28 }}><div><div style={{ borderBottom: "1px solid #334155", minHeight: 24, fontWeight: 700 }}>{record.pastor_name}</div><div style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", marginTop: 6 }}>OFFICIATING PASTOR</div></div><div><div style={{ borderBottom: "1px solid #334155", minHeight: 24 }}></div><div style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", marginTop: 6 }}>AUTHORIZED SIGNATURE</div></div></footer>
+  </article>;
 }
 
 export default function DedicationRegister({ setPage, loggedInLeader }: Props) {
@@ -69,65 +23,12 @@ export default function DedicationRegister({ setPage, loggedInLeader }: Props) {
   const [form, setForm] = useState(blankRecord);
   const [records, setRecords] = useState<DedicationRecord[]>([]);
   const [selected, setSelected] = useState<DedicationRecord | null>(null);
+  const [generatedRecordIds, setGeneratedRecordIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
-
-  const loadRecords = async () => {
-    const response = await fetch(`${API_BASE_URL}/dedication-records/${encodeURIComponent(branch)}`);
-    if (response.ok) setRecords(await response.json());
-  };
-
+  const loadRecords = async () => { const response = await fetch(`${API_BASE_URL}/dedication-records/${encodeURIComponent(branch)}`); if (response.ok) setRecords(await response.json()); };
   useEffect(() => { void loadRecords(); }, [branch]);
-
-  const save = async () => {
-    if (Object.values(form).some((value) => !value.trim())) return alert("Fill in every certificate field.");
-    setSaving(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/dedication-records`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, pastor_name: pastor, branch }),
-      });
-      if (!response.ok) throw new Error("Save failed");
-      setForm(blankRecord());
-      await loadRecords();
-      alert("Dedication record saved.");
-    } catch {
-      alert("Unable to save the dedication record. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const printCertificate = (record: DedicationRecord) => {
-    setSelected(record);
-    const masks = labelMasks.map((mask) => {
-      const styles = Object.entries(mask).map(([property, value]) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}:${value}`).join(";");
-      return `<span aria-hidden="true" style="position:absolute;${styles}"></span>`;
-    }).join("");
-    const fields = Object.entries(fieldPositions).map(([key, position]) => {
-      const styles = Object.entries(position).map(([property, value]) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}:${value}`).join(";");
-      return `<span style="position:absolute;${styles};font:600 14px Arial,sans-serif;font-style:normal;letter-spacing:.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111827">${escapeHtml(record[key as keyof DedicationRecord] as string)}</span>`;
-    }).join("");
-    const printWindow = window.open("", "_blank", "width=1200,height=650");
-    if (!printWindow) return alert("Allow pop-ups to print the certificate.");
-    printWindow.document.write(`<!doctype html><html><head><title>Dedication Certificate</title><style>@page{size:landscape;margin:0}html,body{margin:0;width:100%;height:100%}.certificate{position:relative;width:100vw;height:43.5366vw;background:url('${window.location.origin}/dedication-certificate.png') center/100% 100% no-repeat}@media print{.certificate{width:100vw;height:43.5366vw}}</style></head><body><div class="certificate">${masks}${fields}</div><script>window.onload=()=>window.print()</script></body></html>`);
-    printWindow.document.close();
-  };
-
-  const inputs: Array<[string, keyof typeof form, string]> = [["Child/candidate name", "child_name", "text"], ["Date of birth", "date_of_birth", "date"], ["Dedication date", "dedication_date", "date"], ["Dedication location", "dedication_place", "text"], ["Father’s name", "father_name", "text"], ["Mother’s name", "mother_name", "text"], ["Certificate number", "certificate_number", "text"]];
-
-  return <main style={{ minHeight: "100vh", background: "#f3f4f6", color: "#111827", padding: "28px", boxSizing: "border-box" }}>
-    <button onClick={() => setPage("pastoral-dashboard")}>← Back to Pastoral Department</button>
-    <h1>Dedication Register</h1>
-    <p>Save dedication details, then generate and print the official certificate.</p>
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 390px) minmax(0, 1fr)", gap: 24, marginTop: 24 }}>
-      <section style={{ background: "white", padding: 22, borderRadius: 10 }}><h2>Add record</h2>
-        {inputs.map(([label, key, type]) => <label key={key} style={{ display: "block", margin: "12px 0", fontWeight: 700 }}>{label}<input required type={type} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 5, boxSizing: "border-box" }} /></label>)}
-        <label style={{ display: "block", margin: "12px 0", fontWeight: 700 }}>Pastor’s full name<input value={pastor} disabled style={{ display: "block", width: "100%", padding: 10, marginTop: 5, boxSizing: "border-box" }} /></label>
-        <button onClick={save} disabled={saving} style={{ padding: "12px 18px", background: "#ef6c00", color: "white", border: 0, borderRadius: 6, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>{saving ? "Saving…" : "Save record"}</button>
-      </section>
-      <section style={{ background: "white", padding: 22, borderRadius: 10, overflowX: "auto" }}><h2>Saved dedication records</h2><table style={{ minWidth: 820, width: "100%" }}><thead><tr>{["Child", "D.O.B.", "Dedication date", "Location", "Father", "Mother", "Pastor", "Certificate", ""].map((heading) => <th key={heading} style={{ textAlign: "left", padding: 8 }}>{heading}</th>)}</tr></thead><tbody>{records.map((record) => <tr key={record.id}>{[record.child_name, record.date_of_birth, record.dedication_date, record.dedication_place, record.father_name, record.mother_name, record.pastor_name, record.certificate_number].map((value, index) => <td key={index} style={{ padding: 8 }}>{value}</td>)}<td><button onClick={() => printCertificate(record)}>Generate card</button></td></tr>)}{!records.length && <tr><td colSpan={9} style={{ padding: 8 }}>No saved dedication records.</td></tr>}</tbody></table></section>
-    </div>
-    {selected && <section style={{ marginTop: 25, maxWidth: 1000 }}><h2>Certificate preview</h2><Certificate record={selected} /><button onClick={() => printCertificate(selected)} style={{ marginTop: 12 }}>Print certificate</button></section>}
-  </main>;
+  const save = async () => { if (Object.values(form).some((value) => !value.trim())) return alert("Fill in every certificate field."); setSaving(true); try { const response = await fetch(`${API_BASE_URL}/dedication-records`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, pastor_name: pastor, branch }) }); if (!response.ok) throw new Error("Save failed"); setForm(blankRecord()); await loadRecords(); alert("Dedication record saved."); } catch { alert("Unable to save the dedication record. Please try again."); } finally { setSaving(false); } };
+  const printCertificate = (record: DedicationRecord) => { setSelected(record); setGeneratedRecordIds((ids) => ids.includes(record.id) ? ids : [...ids, record.id]); const printWindow = window.open("", "_blank", "width=1200,height=650"); if (!printWindow) return alert("Allow pop-ups to print the certificate."); const value = (key: keyof DedicationRecord) => escapeHtml(String(record[key])); const field = (label: string, key: keyof DedicationRecord, full = false) => `<div class="field ${full ? "full" : ""}"><small>${label}</small><strong>${value(key)}</strong></div>`; printWindow.document.write(`<!doctype html><html><head><title>Dedication Certificate</title><style>@page{size:landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#0f172a}.certificate{border:10px solid #166534;outline:2px solid #bbf7d0;outline-offset:-18px;padding:34px 58px 30px;background:linear-gradient(135deg,#fff,#f0fdf4)}header{display:grid;grid-template-columns:86px 1fr auto;gap:18px;align-items:center;border-bottom:2px solid #bbf7d0;padding-bottom:18px}.logo{width:78px;height:78px;object-fit:contain}.church{color:#166534;font-size:34px;font-weight:800;letter-spacing:.04em}.motto{color:#2563eb;font-size:12px;font-weight:700;letter-spacing:.09em;margin-top:8px}.box{border:2px solid #166534;border-radius:8px;padding:10px 14px;min-width:110px;text-align:center;background:#fff}.box small,.field small,.signature small{display:block;color:#475569;font-size:10px;font-weight:700;letter-spacing:.08em}.box strong{display:block;color:#166534;font-size:18px;margin-top:4px}.title{text-align:center;margin:18px 0 6px;color:#166534;font-size:28px;font-weight:800;letter-spacing:.08em}.subtitle{text-align:center;color:#475569;font-size:12px;margin:0 0 12px}.fields{display:grid;grid-template-columns:1fr 1fr;column-gap:34px}.field{border-bottom:1px solid #94a3b8;padding:9px 0}.field.full{grid-column:1/-1}.field strong{display:block;font-size:15px;margin-top:3px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:28px}.signature strong{display:block;border-bottom:1px solid #334155;min-height:24px;font-size:15px}.signature small{margin-top:6px}</style></head><body><article class="certificate"><header><img class="logo" src="${window.location.origin}/logo.png"><div><div class="church">LIFELINE GRACE CHURCH</div><div class="motto">SPIRITUAL INTEGRITY THROUGH EXCELLENCE IN MINISTRY</div><div style="font-size:12px;font-weight:700;margin-top:5px">P.O. BOX 722-50200</div></div><div class="box"><small>CERTIFICATE NO.</small><strong>${value("certificate_number")}</strong></div></header><div class="title">CERTIFICATE OF DEDICATION</div><div class="subtitle">This certifies that the following dedication has been recorded by Lifeline Grace Church.</div><section class="fields">${field("CHILD / CANDIDATE NAME", "child_name", true)}${field("DATE OF BIRTH", "date_of_birth")}${field("DEDICATION DATE", "dedication_date")}${field("DEDICATION LOCATION", "dedication_place", true)}${field("FATHER'S NAME", "father_name")}${field("MOTHER'S NAME", "mother_name")}</section><footer class="signatures"><div class="signature"><strong>${value("pastor_name")}</strong><small>OFFICIATING PASTOR</small></div><div class="signature"><strong></strong><small>AUTHORIZED SIGNATURE</small></div></footer></article><script>window.onload=()=>window.print()</script></body></html>`); printWindow.document.close(); };
+  const inputs: Array<[string, keyof typeof form, string]> = [["Child/candidate name", "child_name", "text"], ["Date of birth", "date_of_birth", "date"], ["Dedication date", "dedication_date", "date"], ["Dedication location", "dedication_place", "text"], ["Father's name", "father_name", "text"], ["Mother's name", "mother_name", "text"], ["Certificate number", "certificate_number", "text"]];
+  return <main style={{ minHeight: "100vh", background: "#f3f4f6", color: "#111827", padding: 28, boxSizing: "border-box" }}><button onClick={() => setPage("pastoral-dashboard")}>← Back to Pastoral Department</button><h1>Dedication Register</h1><p>Save dedication details, then generate and print the official certificate.</p><div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 390px) minmax(0, 1fr)", gap: 24, marginTop: 24 }}><section style={{ background: "white", padding: 22, borderRadius: 10 }}><h2>Add record</h2>{inputs.map(([label, key, type]) => <label key={key} style={{ display: "block", margin: "12px 0", fontWeight: 700 }}>{label}<input required type={type} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 5, boxSizing: "border-box" }} /></label>)}<label style={{ display: "block", margin: "12px 0", fontWeight: 700 }}>Pastor's full name<input value={pastor} disabled style={{ display: "block", width: "100%", padding: 10, marginTop: 5, boxSizing: "border-box" }} /></label><button onClick={save} disabled={saving} style={{ padding: "12px 18px", background: "#ef6c00", color: "white", border: 0, borderRadius: 6, fontWeight: 700, cursor: saving ? "wait" : "pointer" }}>{saving ? "Saving…" : "Save record"}</button></section><section style={{ background: "white", padding: 22, borderRadius: 10, overflowX: "auto" }}><h2>Saved dedication records</h2><table style={{ minWidth: 820, width: "100%" }}><thead><tr>{["Child", "D.O.B.", "Dedication date", "Location", "Father", "Mother", "Pastor", "Certificate", ""].map((heading) => <th key={heading} style={{ textAlign: "left", padding: 8 }}>{heading}</th>)}</tr></thead><tbody>{records.map((record) => { const generated = generatedRecordIds.includes(record.id); return <tr key={record.id}>{[record.child_name, record.date_of_birth, record.dedication_date, record.dedication_place, record.father_name, record.mother_name, record.pastor_name, record.certificate_number].map((value, index) => <td key={index} style={{ padding: 8 }}>{value}</td>)}<td><button onClick={() => printCertificate(record)} style={{ padding: "9px 12px", border: 0, borderRadius: 6, color: "white", fontWeight: 700, cursor: "pointer", background: generated ? "#6b7280" : "#16a34a", animation: generated ? "none" : "blink 1s infinite" }}>{generated ? "Generated" : "Generate card"}</button></td></tr>; })}{!records.length && <tr><td colSpan={9} style={{ padding: 8 }}>No saved dedication records.</td></tr>}</tbody></table></section></div>{selected && <section style={{ margin: "25px auto 0", maxWidth: 1000 }}><h2>Certificate preview</h2><Certificate record={selected} /><button onClick={() => printCertificate(selected)} style={{ marginTop: 12, padding: "10px 14px", background: "#166534", border: 0, borderRadius: 6, color: "white", fontWeight: 700 }}>Print certificate</button></section>}<style>{"@keyframes blink { 50% { opacity: .45; } }"}</style></main>;
 }
