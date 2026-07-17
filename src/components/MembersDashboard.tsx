@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 type MembersDashboardProps = {
   selectedBranch: string;
   setPage: (page: string) => void;
+  backPage: string;
+  canManageHomeGallery: boolean;
 };
 
 type Member = {
@@ -36,6 +38,8 @@ const departments = ["Administration", "Cell Group", "Media", "Pastoral", "Youth
 export default function MembersDashboard({
   selectedBranch,
   setPage,
+  backPage,
+  canManageHomeGallery,
 }: MembersDashboardProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -207,7 +211,7 @@ export default function MembersDashboard({
         </div>
 
         <button
-          onClick={() => setPage("bishop-dashboard")}
+          onClick={() => setPage(backPage)}
           style={{
             background: "#dc2626",
             color: "#fff",
@@ -450,28 +454,28 @@ export default function MembersDashboard({
                 Manage Branch Gallery
               </button>
 
-              <input
+              {canManageHomeGallery && <input
                 type="file"
                 id="homeGalleryUpload"
                 multiple
                 accept="image/*"
                 style={{ display: "none" }}
                 onChange={uploadHomeGallery}
-              />
+              />}
 
-              <button
+              {canManageHomeGallery && <button
                 onClick={() => document.getElementById("homeGalleryUpload")?.click()}
                 style={actionButtonStyle("#0f766e")}
               >
                 Upload Home Gallery
-              </button>
+              </button>}
 
-              <button
+              {canManageHomeGallery && <button
                 onClick={() => setPage("manage-home-gallery")}
                 style={actionButtonStyle("#b45309")}
               >
                 Manage Home Gallery
-              </button>
+              </button>}
 
               <button onClick={deleteMember} style={actionButtonStyle("#dc2626")}>
                 Delete Selected Member

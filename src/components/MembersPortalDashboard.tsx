@@ -109,13 +109,6 @@ export default function MembersPortalDashboard({
             description="View and update your personal information."
           />
 
-          <Card
-            icon="🏛"
-            title="Media, Images & Videos"
-            description="Find and download church media."
-            onClick={() => setPage("member-media-library")}
-          />
-
       <Card
   icon="👨‍👩‍👧"
   title="Cell Group"

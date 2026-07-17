@@ -7,20 +7,19 @@ Users -> Netlify React website -> Render FastAPI API -> PostgreSQL database
 ## Railway FastAPI API
 
 This repository contains both the React frontend and the FastAPI backend. Configure
-the Railway **backend service** with these settings so it deploys `Backend`, rather
-than detecting the root frontend `package.json` as a Node.js application:
+the Railway **backend service** from the repository root so Railway reads the root
+`railway.toml`:
 
-- Root Directory: `Backend`
-- Config File Path: `/Backend/railway.toml`
+- Root Directory: leave blank (repository root)
+- Config File Path: leave blank, or set `/railway.toml`
 
-`Backend/railway.toml` uses Railpack and defines:
+The root `railway.toml` explicitly selects the Docker builder and
+`Backend/Dockerfile`. Docker builds with the repository root as its context, then
+copies `Backend/requirements.txt` and the `Backend` application directory into the
+image. Do not set the Root Directory to `Backend` for this configuration.
 
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-
-`Backend/mise.toml` pins Railway's Python runtime to `3.11.11` and disables
-Mise's Python GitHub artifact-attestation lookup. `runtime.txt` contains the
-same version as a fallback for Python build detection.
+`Backend/mise.toml` and `Backend/Procfile` are retained for non-Docker/local
+workflows; Railway's Docker build does not use them.
 
 Set these Railway variables before deploying:
 
@@ -29,7 +28,7 @@ Set these Railway variables before deploying:
 - `DEFAULT_BISHOP_USERNAME`, `DEFAULT_BISHOP_PASSWORD`, `DEFAULT_BISHOP_FULL_NAME`, and `DEFAULT_BISHOP_PHONE`: initial administrator details
 
 Generate a public Railway domain for the service after it deploys. The healthcheck
-uses `/`, which returns the API status response.
+uses `/health`.
 
 ## 1. Render API and PostgreSQL
 

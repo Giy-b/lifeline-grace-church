@@ -17,6 +17,41 @@ table {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Shared database-table layout used throughout the dashboards. */
+#root table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+}
+
+#root table th,
+#root table td {
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+#root table th {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#root table td {
+  overflow-wrap: anywhere;
+}
+
+#root table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+#root table tbody tr:hover {
+  background: #eaf2ff;
+}
+
 @media (max-width: 700px) {
   body {
     overflow-x: hidden;
@@ -56,5 +91,15 @@ table {
 
   .group-chat footer button:last-child {
     padding: 14px !important;
+  }
+
+  #root table {
+    display: block;
+    font-size: 13px;
+  }
+
+  #root table th,
+  #root table td {
+    padding: 8px 10px;
   }
 }

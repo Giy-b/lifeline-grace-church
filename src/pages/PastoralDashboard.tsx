@@ -350,6 +350,44 @@ function PastoralDashboard({
           </div>
 
           <div
+            onClick={() => setPage("members-dashboard")}
+            style={{
+              background: "linear-gradient(180deg,#8e24aa,#6a1b9a)",
+              borderRadius: "18px",
+              padding: "25px",
+              height: "270px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              boxShadow: "0 8px 18px rgba(0,0,0,.35)",
+            }}
+          >
+            <div style={{ fontSize: "36px", textAlign: "center" }}>Members</div>
+            <h2 style={{ textAlign: "center", margin: 0 }}>
+              MEMBERS
+              <br />
+              MANAGEMENT
+            </h2>
+            <p style={{ textAlign: "center" }}>
+              Manage members and the branch gallery.
+            </p>
+            <button
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                border: "none",
+                margin: "0 auto",
+                fontSize: "20px",
+                cursor: "pointer",
+              }}
+            >
+              -&gt;
+            </button>
+          </div>
+
+          <div
  onClick={() => {
   setChatUserName(loggedInLeader?.full_name || "Pastoral Leader");
   setChatSenderType("Leader");

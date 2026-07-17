@@ -18,7 +18,29 @@ function LiveStream({
   loggedInLeader,
 }: LiveStreamProps) {
   const [selectedPlatform, setSelectedPlatform] = useState("");
-const [streamLink, setStreamLink] = useState("");
+  const [streamLink, setStreamLink] = useState("");
+
+  const cancelLiveStream = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/media-library/live-status/stop`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to stop the live stream");
+      }
+
+      setIsLive(false);
+      setLivePlatform("");
+      setLiveLink("");
+      setSelectedPlatform("");
+      setStreamLink("");
+      alert("Live stream cancelled. The home-page notification is now offline.");
+    } catch {
+      alert("Unable to cancel the live stream. Please try again.");
+    }
+  };
+
   const openPlatform = (platform: string) => {
     setSelectedPlatform(platform);
 
@@ -119,11 +141,7 @@ const [streamLink, setStreamLink] = useState("");
       return;
     }
 
-    setIsLive(true);
-    setLivePlatform(selectedPlatform);
-    setLiveLink(streamLink);
-
-    await fetch(`${API_BASE_URL}/media-library/live-link`, {
+    const response = await fetch(`${API_BASE_URL}/media-library/live-link`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -135,6 +153,15 @@ const [streamLink, setStreamLink] = useState("");
         uploaded_by: loggedInLeader?.full_name || "Media Leader",
       }),
     });
+
+    if (!response.ok) {
+      alert("Unable to start the live notification. Please try again.");
+      return;
+    }
+
+    setIsLive(true);
+    setLivePlatform(selectedPlatform);
+    setLiveLink(streamLink);
 
     alert("Church is now LIVE and the link has been saved for members!");
   }}
@@ -153,12 +180,7 @@ const [streamLink, setStreamLink] = useState("");
 </button>
 
     <button
-  onClick={() => {
-    setIsLive(false);
-    setLivePlatform("");
-    setLiveLink("");
-    setSelectedPlatform("");
-  }}
+  onClick={cancelLiveStream}
   style={{
     background: "red",
     color: "white",
@@ -169,9 +191,27 @@ const [streamLink, setStreamLink] = useState("");
     cursor: "pointer",
   }}
 >
-  🔴 CANCEL
+  CANCEL LIVE STREAM
 </button>
         </div>
+      )}
+
+      {!selectedPlatform && (
+        <button
+          onClick={cancelLiveStream}
+          style={{
+            background: "red",
+            color: "white",
+            border: "none",
+            padding: "15px 35px",
+            fontSize: "18px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            marginTop: "30px",
+          }}
+        >
+          CANCEL LIVE STREAM
+        </button>
       )}
 
       <button

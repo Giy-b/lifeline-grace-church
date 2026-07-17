@@ -90,26 +90,6 @@ function MediaDashboard({
             gap: "20px",
           }}
         >
-          {/* BRANCH GALLERY */}
-          <div
-            onClick={() => setPage("manage-branch-gallery")}
-            style={cardStyle("linear-gradient(180deg,#43a047,#2e7d32)")}
-          >
-            <div style={{ fontSize: "55px", textAlign: "center" }}>🖼</div>
-
-            <h2 style={{ textAlign: "center", margin: 0 }}>
-              BRANCH
-              <br />
-              GALLERY
-            </h2>
-
-            <p style={{ textAlign: "center" }}>
-              Upload and manage gallery images.
-            </p>
-
-            {arrowButton}
-          </div>
-
           {/* MEDIA UPLOADS */}
           <div
             onClick={() => setPage("media-library-admin")}

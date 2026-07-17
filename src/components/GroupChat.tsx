@@ -179,14 +179,22 @@ export default function GroupChat({
     <div
       className="group-chat"
       style={{
-        height: "100vh",
+        height: "100dvh",
         display: "flex",
         background: "#e7e5df",
         color: "#1f2933",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <header
           style={{
             background: "#075e54",
@@ -196,6 +204,8 @@ export default function GroupChat({
             justifyContent: "space-between",
             alignItems: "center",
             boxShadow: "0 2px 8px rgba(0,0,0,.18)",
+            flexShrink: 0,
+            zIndex: 1,
           }}
         >
           <div>
@@ -224,6 +234,7 @@ export default function GroupChat({
         <section
           style={{
             flex: 1,
+            minHeight: 0,
             overflowY: "auto",
             padding: "22px",
             background: "#efe7dd",
@@ -330,6 +341,7 @@ export default function GroupChat({
             display: "flex",
             gap: "10px",
             alignItems: "center",
+            flexShrink: 0,
           }}
         >
           <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={uploadFile} />

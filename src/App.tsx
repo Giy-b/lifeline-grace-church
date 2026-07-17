@@ -71,6 +71,7 @@ const [chatSenderType, setChatSenderType] = useState("Member");
 const [chatDepartment, setChatDepartment] = useState("Member");
 const [loggedInLeader, setLoggedInLeader] = useState<Leader | null>(null);
 const [leadersBackPage, setLeadersBackPage] = useState("bishop-dashboard");
+const [membersBackPage, setMembersBackPage] = useState("bishop-dashboard");
  const [selectedDepartment, setSelectedDepartment] = useState("");
 const branches = [
     "Bungoma",
@@ -338,6 +339,10 @@ if (page === "pastoral-dashboard") {
           setLeadersBackPage("pastoral-dashboard");
         }
 
+        if (nextPage === "members-dashboard") {
+          setMembersBackPage("pastoral-dashboard");
+        }
+
         setPage(nextPage);
       }}
       loggedInLeader={loggedInLeader}
@@ -407,6 +412,8 @@ if (page === "members-dashboard") {
     <MembersDashboard
       selectedBranch={selectedBranch}
       setPage={setPage}
+      backPage={membersBackPage}
+      canManageHomeGallery={membersBackPage === "bishop-dashboard"}
     />
   );
 }
@@ -417,6 +424,10 @@ if (page === "bishop-dashboard") {
       setPage={(nextPage) => {
         if (nextPage === "leaders-management") {
           setLeadersBackPage("bishop-dashboard");
+        }
+
+        if (nextPage === "members-dashboard") {
+          setMembersBackPage("bishop-dashboard");
         }
 
         setPage(nextPage);

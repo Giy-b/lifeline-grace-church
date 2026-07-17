@@ -404,9 +404,19 @@ def ensure_media_library_table():
                     file_path VARCHAR(255),
                     media_url TEXT,
                     uploaded_by VARCHAR(255),
+                    is_live BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+        )
+
+        # Existing deployments may already have this table without the live
+        # state column, so add it without disturbing saved media records.
+        add_column_if_missing(
+            connection,
+            "media_library",
+            "is_live",
+            "BOOLEAN DEFAULT FALSE",
         )
 
 @app.put("/chat-messages/{message_id}")
@@ -2021,6 +2031,7 @@ def get_live_media_status():
                     media_url
                 FROM media_library
                 WHERE media_type = 'live'
+                  AND COALESCE(is_live, FALSE) = TRUE
                   AND media_url IS NOT NULL
                   AND media_url <> ''
                 ORDER BY created_at DESC, id DESC
@@ -2147,13 +2158,22 @@ def save_live_media_link(media: LiveMediaLink):
     with engine.begin() as connection:
         connection.execute(
             text("""
+                UPDATE media_library
+                SET is_live = FALSE
+                WHERE media_type = 'live'
+            """)
+        )
+
+        connection.execute(
+            text("""
                 INSERT INTO media_library
                 (
                     branch,
                     title,
                     media_type,
                     media_url,
-                    uploaded_by
+                    uploaded_by,
+                    is_live
                 )
                 VALUES
                 (
@@ -2161,7 +2181,8 @@ def save_live_media_link(media: LiveMediaLink):
                     :title,
                     :media_type,
                     :media_url,
-                    :uploaded_by
+                    :uploaded_by,
+                    TRUE
                 )
             """),
             {
@@ -2174,6 +2195,23 @@ def save_live_media_link(media: LiveMediaLink):
         )
 
     return {"message": "Live stream link saved"}
+
+
+@app.post("/media-library/live-status/stop")
+def stop_live_media():
+    ensure_media_library_table()
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("""
+                UPDATE media_library
+                SET is_live = FALSE
+                WHERE media_type = 'live'
+                  AND COALESCE(is_live, FALSE) = TRUE
+            """)
+        )
+
+    return {"message": "Live stream ended"}
 
 
 @app.delete("/media-library/{media_id}")
