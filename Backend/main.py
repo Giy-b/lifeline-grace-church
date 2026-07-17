@@ -136,6 +136,48 @@ class LiveMediaLink(BaseModel):
     link: str
     uploaded_by: str
 
+class DedicationRecord(BaseModel):
+    child_name: str
+    date_of_birth: str
+    dedication_date: str
+    dedication_place: str
+    father_name: str
+    mother_name: str
+    certificate_number: str
+    pastor_name: str
+    branch: str
+
+def ensure_dedication_records_table():
+    id_column = "INTEGER PRIMARY KEY AUTOINCREMENT" if engine.dialect.name == "sqlite" else "SERIAL PRIMARY KEY"
+    with engine.begin() as connection:
+        connection.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS dedication_records (
+                id {id_column}, child_name VARCHAR(255) NOT NULL,
+                date_of_birth VARCHAR(30) NOT NULL, dedication_date VARCHAR(30) NOT NULL,
+                dedication_place VARCHAR(255) NOT NULL, father_name VARCHAR(255) NOT NULL,
+                mother_name VARCHAR(255) NOT NULL, certificate_number VARCHAR(100) NOT NULL,
+                pastor_name VARCHAR(255) NOT NULL, branch VARCHAR(100) NOT NULL
+            )
+        """))
+
+@app.get("/dedication-records/{branch}")
+def get_dedication_records(branch: str):
+    ensure_dedication_records_table()
+    with engine.begin() as connection:
+        rows = connection.execute(text("SELECT * FROM dedication_records WHERE branch = :branch ORDER BY id DESC"), {"branch": branch}).mappings().all()
+    return [dict(row) for row in rows]
+
+@app.post("/dedication-records")
+def create_dedication_record(record: DedicationRecord):
+    ensure_dedication_records_table()
+    with engine.begin() as connection:
+        result = connection.execute(text("""
+            INSERT INTO dedication_records (child_name, date_of_birth, dedication_date, dedication_place, father_name, mother_name, certificate_number, pastor_name, branch)
+            VALUES (:child_name, :date_of_birth, :dedication_date, :dedication_place, :father_name, :mother_name, :certificate_number, :pastor_name, :branch)
+        """), record.model_dump())
+        record_id = result.lastrowid
+    return {"id": record_id, **record.model_dump()}
+
 def ensure_core_tables():
     id_column = (
         "INTEGER PRIMARY KEY AUTOINCREMENT"

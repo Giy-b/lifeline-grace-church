@@ -532,7 +532,7 @@ function Home({
                 textAlign: "right",
               }}
             >
-              <h3>EPHESIANS 22:</h3>
+              <h3>EPHESIANS 4:13-15</h3>
 
               <p>
                 “…to equip his people for works of service, so that the body of

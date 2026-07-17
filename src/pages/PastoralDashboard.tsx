@@ -233,7 +233,7 @@ function PastoralDashboard({
             </button>
           </div>
 
-          {/* BAPTISM */}
+          {/* DEDICATION REGISTER */}
           <div
             onClick={() => setPage("baptism-register")}
             style={{
@@ -263,7 +263,7 @@ function PastoralDashboard({
                 margin: 0,
               }}
             >
-              BAPTISM
+              DEDICATION
               <br />
               REGISTER
             </h2>
@@ -273,7 +273,7 @@ function PastoralDashboard({
                 textAlign: "center",
               }}
             >
-              Register baptisms.
+              Register dedications and print certificates.
             </p>
 
             <button

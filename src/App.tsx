@@ -18,6 +18,7 @@ import AdministrationDashboard from "./pages/AdministrationDashboard";
 import CellGroupDashboard from "./pages/CellGroupDashboard";
 import PastoralDashboard from "./pages/PastoralDashboard";
 import PastoralRecordsPage from "./pages/PastoralRecordsPage";
+import DedicationRegister from "./pages/DedicationRegister";
 import CanaDashboard from "./components/CanaDashboard";
 import BethelDashboard from "./components/BethelDashboard";
 import SamariaDashboard from "./components/SamariaDashboard";
@@ -355,11 +356,13 @@ if (page === "pastoral-dashboard") {
   );
 
 }
+if (page === "baptism-register") {
+  return <DedicationRegister setPage={setPage} loggedInLeader={loggedInLeader} />;
+}
 if (
   page === "member-visitation" ||
   page === "counselling" ||
-  page === "prayer-requests" ||
-  page === "baptism-register"
+  page === "prayer-requests"
 ) {
   return (
     <PastoralRecordsPage

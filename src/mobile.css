@@ -75,6 +75,9 @@ table {
   .group-chat header {
     padding: 12px;
     gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   .group-chat header h2 {
