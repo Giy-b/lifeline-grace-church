@@ -20,6 +20,7 @@ export default function MemberLogin({
 }: MemberLoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function loginMember() {
     const cleanUsername = username.trim();
@@ -113,13 +114,22 @@ export default function MemberLogin({
 
           <label>Password</label>
 
-          <input
-            type="password"
-            placeholder="Enter Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ ...inputStyle, paddingRight: "70px" }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "#0d47a1", cursor: "pointer", fontWeight: "bold" }}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
 
           <button
             onClick={loginMember}

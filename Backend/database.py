@@ -4,8 +4,12 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-def load_env_file() -> None:
-    env_path = Path(__file__).with_name(".env")
+PROCESS_ENV_KEYS = set(os.environ)
+
+
+def load_env_file(filename: str, *, override: bool = False) -> None:
+    """Load a backend env file without replacing deployment environment variables."""
+    env_path = Path(__file__).with_name(filename)
 
     if not env_path.exists():
         return
@@ -17,10 +21,21 @@ def load_env_file() -> None:
             continue
 
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+
+        if key in PROCESS_ENV_KEYS:
+            continue
+
+        if override or key not in os.environ:
+            os.environ[key] = value
 
 
-load_env_file()
+# Base values can be shared in .env.  .env.local is gitignored and takes
+# precedence for each developer's machine.  Values supplied by the process
+# environment (for example Railway/Render secrets) always take precedence.
+load_env_file(".env")
+load_env_file(".env.local", override=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

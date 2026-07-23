@@ -178,6 +178,17 @@ def create_dedication_record(record: DedicationRecord):
         record_id = result.lastrowid
     return {"id": record_id, **record.model_dump()}
 
+@app.delete("/dedication-records/{record_id}")
+def delete_dedication_record(record_id: int, branch: str):
+    """Remove a record after its certificate has been generated."""
+    ensure_dedication_records_table()
+    with engine.begin() as connection:
+        result = connection.execute(
+            text("DELETE FROM dedication_records WHERE id = :id AND branch = :branch"),
+            {"id": record_id, "branch": branch},
+        )
+    return {"deleted": result.rowcount > 0}
+
 def ensure_core_tables():
     id_column = (
         "INTEGER PRIMARY KEY AUTOINCREMENT"

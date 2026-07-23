@@ -1,5 +1,22 @@
 # React + TypeScript + Vite
 
+## Local environment settings
+
+Use `.env.local` for values that are only for your computer. It is ignored by
+Git, so it will not be pushed to GitHub.
+
+- Frontend: copy `.env.example` to `.env.local` and set `VITE_API_URL`, for
+  example `http://localhost:8000`.
+- Backend: copy `Backend/.env.local.example` to `Backend/.env.local` and set
+  your local `DATABASE_URL`, for example:
+
+  ```env
+  DATABASE_URL=postgresql://postgres:password@localhost:5432/church_db
+  ```
+
+`Backend/.env.local` overrides `Backend/.env` during local development. Hosted
+environment variables still take priority in deployment.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

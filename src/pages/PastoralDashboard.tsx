@@ -261,11 +261,17 @@ function PastoralDashboard({
               style={{
                 textAlign: "center",
                 margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 2,
+                fontSize: 23,
+                lineHeight: 1.05,
               }}
             >
-              DEDICATION
-              <br />
-              REGISTER
+              <span style={{color:'#0b6b2b',fontWeight:800,letterSpacing:1}}>DEDICATION</span>
+              <span style={{color:'#8fd18a',fontWeight:800,letterSpacing:1}}>REGISTER</span>
             </h2>
 
             <p

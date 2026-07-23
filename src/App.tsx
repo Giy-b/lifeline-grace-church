@@ -55,6 +55,7 @@ const [liveLink, setLiveLink] = useState("");
   const [showMemberLogin, setShowMemberLogin] = useState(false);
   const [bishopUsername, setBishopUsername] = useState("");
   const [bishopPassword, setBishopPassword] = useState("");
+  const [showBishopPassword, setShowBishopPassword] = useState(false);
   const [currentImage, setCurrentImage] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [fade, setFade] = useState(true);
@@ -63,6 +64,7 @@ const [announcementBackPage, setAnnouncementBackPage] = useState("secretary-dash
    const [leaderName, setLeaderName] = useState("");
 const [leaderPhone, setLeaderPhone] = useState("");
 const [leaderPassword, setLeaderPassword] = useState("");
+const [showLeaderPassword, setShowLeaderPassword] = useState(false);
 const [leaderDepartment, setLeaderDepartment] = useState("");
 const [leaderRole, setLeaderRole] = useState("");
 const [leaderSortBy, setLeaderSortBy] = useState<keyof Leader>("full_name");
@@ -1303,21 +1305,38 @@ No images uploaded yet
 
       <label>Password</label>
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={bishopPassword}
-        onChange={(e) => setBishopPassword(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "12px",
-          marginTop: "8px",
-          marginBottom: "20px",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          boxSizing: "border-box",
-        }}
-      />
+      <div style={{ position: "relative", marginTop: "8px", marginBottom: "20px" }}>
+        <input
+          type={showBishopPassword ? "text" : "password"}
+          placeholder="Password"
+          value={bishopPassword}
+          onChange={(e) => setBishopPassword(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px 70px 12px 12px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            boxSizing: "border-box",
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setShowBishopPassword((visible) => !visible)}
+          style={{
+            position: "absolute",
+            right: "8px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            border: "none",
+            background: "transparent",
+            color: "#0d47a1",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {showBishopPassword ? "Hide" : "Show"}
+        </button>
+      </div>
 
       <div
         style={{
@@ -1476,21 +1495,18 @@ No images uploaded yet
         />
 
         <label>Password</label>
-        <input
-          type="password"
-          placeholder="Password"
-          value={leaderPassword}
-          onChange={(e) => setLeaderPassword(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "8px",
-            marginBottom: "20px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
-        />
+        <div style={{ position: "relative", marginTop: "8px", marginBottom: "20px" }}>
+          <input
+            type={showLeaderPassword ? "text" : "password"}
+            placeholder="Password"
+            value={leaderPassword}
+            onChange={(e) => setLeaderPassword(e.target.value)}
+            style={{ width: "100%", padding: "12px 70px 12px 12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+          />
+          <button type="button" onClick={() => setShowLeaderPassword((visible) => !visible)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "#0d47a1", cursor: "pointer", fontWeight: "bold" }}>
+            {showLeaderPassword ? "Hide" : "Show"}
+          </button>
+        </div>
 
         <button
           onClick={() => {
@@ -1666,23 +1682,18 @@ if (page === "leader-login") {
 
       <label>Password</label>
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={leaderPassword}
-        onChange={(e) =>
-          setLeaderPassword(e.target.value)
-        }
-        style={{
-          width: "100%",
-          padding: "12px",
-          marginTop: "8px",
-          marginBottom: "20px",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          boxSizing: "border-box",
-        }}
-      />
+      <div style={{ position: "relative", marginTop: "8px", marginBottom: "20px" }}>
+        <input
+          type={showLeaderPassword ? "text" : "password"}
+          placeholder="Password"
+          value={leaderPassword}
+          onChange={(e) => setLeaderPassword(e.target.value)}
+          style={{ width: "100%", padding: "12px 70px 12px 12px", borderRadius: "8px", border: "1px solid #ccc", boxSizing: "border-box" }}
+        />
+        <button type="button" onClick={() => setShowLeaderPassword((visible) => !visible)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "#0d47a1", cursor: "pointer", fontWeight: "bold" }}>
+          {showLeaderPassword ? "Hide" : "Show"}
+        </button>
+      </div>
 
      <button
   onClick={() => {
