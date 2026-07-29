@@ -4,6 +4,8 @@ import type { Leader } from "../types";
 
 type CellGroupDashboardProps = {
   setPage: (page: string) => void;
+  selectedBranch: string;
+  isBishopAccess: boolean;
   loggedInLeader: Leader | null;
   setLoggedInLeader: (leader: Leader | null) => void;
   setChatUserName: (name: string) => void;
@@ -14,6 +16,8 @@ type CellGroupDashboardProps = {
 
 function CellGroupDashboard({
   setPage,
+  selectedBranch,
+  isBishopAccess,
   loggedInLeader,
   setLoggedInLeader,
   setChatUserName,
@@ -21,6 +25,8 @@ function CellGroupDashboard({
   setChatDepartment,
   setChatBackPage,
 }: CellGroupDashboardProps) {
+  const activeBranch = isBishopAccess ? selectedBranch : (loggedInLeader?.branch || selectedBranch);
+  const isBungoma = activeBranch === "Bungoma";
   return (
     <div
       style={{
@@ -37,7 +43,7 @@ function CellGroupDashboard({
           fontWeight: "bold",
         }}
       >
-        Cell Group Department
+        {isBungoma ? "Cell Group Department" : "Fellowship Department"}
       </h1>
 
       <div
@@ -53,7 +59,7 @@ function CellGroupDashboard({
             fontSize: "34px",
           }}
         >
-          Cell Group Department
+          {isBungoma ? "Cell Group Department" : "Fellowship Department"}
         </h2>
 
         <div
@@ -63,6 +69,7 @@ function CellGroupDashboard({
             gap: "20px",
           }}
         >
+          {isBungoma ? <>
           {/* CANA */}
 <div
   onClick={() => setPage("cana-dashboard")}
@@ -289,12 +296,20 @@ function CellGroupDashboard({
               →
             </button>
           </div>
+          </> : <div
+            onClick={() => setPage("fellowship-dashboard")}
+            style={{
+              background: "linear-gradient(180deg,#43a047,#2e7d32)", borderRadius: "18px", padding: "25px", height: "270px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 8px 18px rgba(0,0,0,.35)", textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "55px" }}>🤝</div><h2 style={{ margin: 0 }}>FELLOWSHIP</h2><p>Manage fellowship activities for this branch.</p><button style={{ width: "42px", height: "42px", borderRadius: "50%", border: "none", margin: "0 auto", fontSize: "20px", cursor: "pointer" }}>→</button>
+          </div>}
 
           <div
             onClick={() => {
-              setChatUserName(loggedInLeader?.full_name || "Cell Group Leader");
+              setChatUserName(loggedInLeader?.full_name || "Bishop");
               setChatSenderType("Leader");
-              setChatDepartment("Cell Group");
+              setChatDepartment(isBungoma ? "Cell Group" : "Fellowship");
               setChatBackPage("cell-group-dashboard");
               setPage("group-chat");
             }}

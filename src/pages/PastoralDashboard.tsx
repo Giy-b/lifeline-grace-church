@@ -393,6 +393,10 @@ function PastoralDashboard({
             </button>
           </div>
 
+          <div onClick={() => setPage("pastoral-service-statistics")} style={{ background: "linear-gradient(180deg,#0ea5e9,#0369a1)", borderRadius: "18px", padding: "25px", height: "270px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 8px 18px rgba(0,0,0,.35)" }}>
+            <div style={{ fontSize: "36px", textAlign: "center" }}>Statistics</div><h2 style={{ textAlign: "center", margin: 0 }}>SERVICE<br />STATISTICS</h2><p style={{ textAlign: "center" }}>Review service attendance and offerings.</p><button style={{ width: 42, height: 42, borderRadius: "50%", border: "none", margin: "0 auto" }}>→</button>
+          </div>
+
           <div
  onClick={() => {
   setChatUserName(loggedInLeader?.full_name || "Pastoral Leader");

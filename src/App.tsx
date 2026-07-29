@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./config/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DepartmentDashboard from "./components/DepartmentDashboard";
 import Home from "./components/Home";
 import GroupChat from "./components/GroupChat";
@@ -23,9 +23,12 @@ import CanaDashboard from "./components/CanaDashboard";
 import BethelDashboard from "./components/BethelDashboard";
 import SamariaDashboard from "./components/SamariaDashboard";
 import ShalomDashboard from "./components/ShalomDashboard";
+import FellowshipDashboard from "./components/FellowshipDashboard";
 import CellGroupPage from "./components/CellGroupPage";
 import FinanceDashboard from "./pages/FinanceDashboard";
 import LiveStream from "./pages/LiveStream";
+import ServiceStatisticsEntry from "./pages/ServiceStatisticsEntry";
+import ServiceStatisticsReport from "./pages/ServiceStatisticsReport";
 import MediaLibrary from "./pages/MediaLibrary";
 import YouthDashboard from "./pages/YouthDashboard";
 import type { Leader, LoggedInMember } from "./types";
@@ -47,6 +50,49 @@ const [branchImageIndex, setBranchImageIndex] = useState(0);
 const [livePlatform, setLivePlatform] = useState("");
 const [liveLink, setLiveLink] = useState("");
   const [page, setPage] = useState("home");
+  const isHandlingPop = useRef(false);
+
+  // Initialize page from URL on first mount and ensure history state exists
+  useEffect(() => {
+    const path = window.location.pathname.replace(/^\//, "");
+    const initial = path || "home";
+    if (initial !== page) {
+      // sync state to URL-derived page without pushing a new history entry
+      isHandlingPop.current = true;
+      setPage(initial);
+    }
+    // ensure the current history entry has state we can read on pop
+    window.history.replaceState({ page: initial }, "", `/${initial}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Push history entries when `page` changes (unless the change originated from popstate)
+  useEffect(() => {
+    if (isHandlingPop.current) {
+      // this change came from a popstate handler — clear the flag and do not push
+      isHandlingPop.current = false;
+      return;
+    }
+
+    try {
+      const safePath = page || "home";
+      window.history.pushState({ page: safePath }, "", `/${safePath}`);
+    } catch (err) {
+      // ignore history errors in older browsers
+    }
+  }, [page]);
+
+  // React to browser Back/Forward (popstate) and update the app page state
+  useEffect(() => {
+    const onPop = (ev: PopStateEvent) => {
+      const incoming = (ev.state && (ev.state as any).page) || window.location.pathname.replace(/^\//, "") || "home";
+      isHandlingPop.current = true;
+      setPage(incoming);
+    };
+
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [memberName, setMemberName] = useState("");
   const [chatUserName, setChatUserName] = useState("");
    const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
@@ -397,6 +443,7 @@ if (page === "member-registration") {
   return (
     <MemberRegistration
       selectedBranch={selectedBranch}
+      branches={branches}
       setPage={setPage}
     />
   );
@@ -419,6 +466,7 @@ if (page === "members-dashboard") {
       setPage={setPage}
       backPage={membersBackPage}
       canManageHomeGallery={membersBackPage === "bishop-dashboard"}
+      isBishopMemberManagement={membersBackPage === "bishop-dashboard"}
     />
   );
 }
@@ -572,6 +620,31 @@ if (page === "shalom-dashboard") {
     />
   );
 }
+if (page === "service-statistics-entry") {
+  return <ServiceStatisticsEntry selectedBranch={selectedBranch} loggedInLeader={loggedInLeader} setPage={setPage} />;
+}
+if (page === "bishop-service-statistics") {
+  return <ServiceStatisticsReport selectedBranch={selectedBranch} backPage="bishop-dashboard" setPage={setPage} />;
+}
+if (page === "pastoral-service-statistics") {
+  return <ServiceStatisticsReport selectedBranch={selectedBranch} backPage="pastoral-dashboard" setPage={setPage} />;
+}
+if (page === "fellowship-dashboard") {
+  return (
+    <FellowshipDashboard
+      setPage={setPage}
+      selectedBranch={selectedBranch}
+      isBishopAccess={isBishopAccess}
+      loggedInLeader={loggedInLeader}
+      setChatUserName={setChatUserName}
+      setChatSenderType={setChatSenderType}
+      setChatDepartment={setChatDepartment}
+      setChatBackPage={setChatBackPage}
+      setAnnouncementDepartment={setAnnouncementDepartment}
+      setAnnouncementBackPage={setAnnouncementBackPage}
+    />
+  );
+}
 if (page === "department-dashboard") {
   return (
     <DepartmentDashboard
@@ -624,6 +697,8 @@ if (page === "cell-group-dashboard") {
   return (
     <CellGroupDashboard
       setPage={setPage}
+      selectedBranch={selectedBranch}
+      isBishopAccess={isBishopAccess}
       loggedInLeader={loggedInLeader}
       setLoggedInLeader={setLoggedInLeader}
       setChatUserName={setChatUserName}
@@ -1053,7 +1128,7 @@ const bishopLogin = async () => {
             marginTop: "20px",
           }}
         >
-          Grace Church - {selectedBranch} Branch
+          Lifeline Grace Church - {selectedBranch} Branch
         </h1>
 
         <p
@@ -1520,6 +1595,7 @@ No images uploaded yet
 
             if (leader) {
               setLoggedInLeader(leader);
+              setIsBishopAccess(false);
 
               if (leader.department === "Pastoral") {
                 setPage("pastoral-dashboard");
@@ -1545,7 +1621,11 @@ No images uploaded yet
                 } else if (role === "shalom") {
                   setPage("shalom-dashboard");
                 } else {
-                  setPage("cell-group-dashboard");
+                  setPage(
+                    leader.branch === "Bungoma"
+                      ? "cell-group-dashboard"
+                      : "fellowship-dashboard"
+                  );
                 }
               } else if (leader.department === "Youth") {
                 setPage("youth-dashboard");
@@ -1707,6 +1787,7 @@ if (page === "leader-login") {
 
     if (leader) {
       setLoggedInLeader(leader);
+      setIsBishopAccess(false);
 
       if (leader.department === "Pastoral") {
         setPage("pastoral-dashboard");
@@ -1739,7 +1820,11 @@ if (page === "leader-login") {
     setPage("shalom-dashboard");
 
   } else {
-    setPage("cell-group-dashboard");
+    setPage(
+      leader.branch === "Bungoma"
+        ? "cell-group-dashboard"
+        : "fellowship-dashboard"
+    );
   }
 
 

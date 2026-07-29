@@ -68,6 +68,9 @@ export default function MembersPortalDashboard({
         >
           Logout
         </button>
+
+        
+           
       </div>
 
       {/* WELCOME */}
@@ -131,6 +134,13 @@ export default function MembersPortalDashboard({
     setPage("group-chat");
   }}
 />
+
+          <Card
+            icon="Media"
+            title="Church Media"
+            description="Watch videos and open live-stream links shared by the Media Department."
+            onClick={() => setPage("member-media-library")}
+          />
         </div>
       </div>
     </div>

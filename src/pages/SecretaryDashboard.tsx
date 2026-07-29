@@ -116,6 +116,9 @@ function SecretaryDashboard({
   <br />
   Manage Announcements
 </div>
+        <div onClick={() => setPage("service-statistics-entry")} style={{ background: "linear-gradient(135deg,#2563eb,#1d4ed8)", color: "white", padding: "30px", borderRadius: "12px", cursor: "pointer", textAlign: "center", fontWeight: "bold" }}>
+          Service Statistics<br /><small style={{ fontWeight: "normal" }}>Record service attendance and offerings</small>
+        </div>
       </div>
     </div>
   );

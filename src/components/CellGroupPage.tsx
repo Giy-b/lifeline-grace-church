@@ -36,7 +36,7 @@ function CellGroupPage({
  const loadAnnouncements = async () => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/announcements`
+      `${API_BASE_URL}/announcements?branch=${encodeURIComponent(branch)}&department=${encodeURIComponent(cellGroup)}`
     );
 
     const data = await response.json();

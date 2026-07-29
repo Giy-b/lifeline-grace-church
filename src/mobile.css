@@ -10,6 +10,37 @@ svg {
   max-width: 100%;
 }
 
+/* Clean PDF pages on the About Us screen, centered against the site background. */
+.about-document-frame {
+  width: 100%;
+  padding: 26px 20px;
+}
+
+.about-document-pages {
+  width: min(75vw, 900px);
+  margin: 0 auto;
+  display: grid;
+  gap: 22px;
+}
+
+.about-document-page {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 auto;
+  background: #ffffff;
+}
+
+.about-document-error {
+  color: #ffffff;
+}
+
+@media (max-width: 700px) {
+  .about-document-pages {
+    width: 100%;
+  }
+}
+
 table {
   display: block;
   max-width: 100%;

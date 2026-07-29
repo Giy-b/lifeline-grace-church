@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env
+.env.example
+Backend/.env.example
 Backend/.env
 __pycache__/
 *.py[cod]

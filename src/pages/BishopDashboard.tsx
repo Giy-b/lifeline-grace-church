@@ -92,7 +92,7 @@ function BishopDashboard({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(5,1fr)",
+            gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
             gap: "18px",
           }}
         >
@@ -229,6 +229,10 @@ function BishopDashboard({
     →
   </div>
 </div>
+
+          <div onClick={() => setPage("bishop-service-statistics")} style={{ background: "linear-gradient(180deg,#0ea5e9,#0369a1)", borderRadius: "18px", padding: "20px", color: "white", height: "250px", cursor: "pointer", boxShadow: "0 6px 15px rgba(0,0,0,.35)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 42, textAlign: "center" }}>Statistics</div><h3 style={{ textAlign: "center", margin: 0 }}>SERVICE<br />STATISTICS</h3><p style={{ textAlign: "center", fontSize: 14 }}>Analyse attendance and service offerings.</p><div style={{ textAlign: "center", fontSize: 20 }}>→</div>
+          </div>
 
           {/* CHURCH OVERSIGHT */}
           <div

@@ -10,11 +10,6 @@ type LeaderPayload = {
   branch: string;
 };
 
-type DepartmentPayload = {
-  department_name: string;
-  description: string;
-};
-
 // =========================
 // LEADERS
 // =========================
@@ -40,17 +35,5 @@ export const createLeader = async (leader: LeaderPayload) => {
 // =========================
 export const getDepartments = async () => {
   const res = await fetch(`${BASE_URL}/departments`);
-  return res.json();
-};
-
-export const createDepartment = async (dept: DepartmentPayload) => {
-  const res = await fetch(`${BASE_URL}/departments`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(dept),
-  });
-
   return res.json();
 };

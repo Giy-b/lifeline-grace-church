@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { API_BASE_URL } from "../config/api";
+
+// Update these details to change the Contact / Location poster on the home page.
+const CONTACT_POSTER = {
+  address: "We are located in Bungoma town",
+  phone: "0726267863",
+  email: "lifelgchurch@gmail.com",
+  serviceTimes: " Sundays at 8:00 AM -12:00 AM ",
+};
 
 type Announcement = {
   id: number;
@@ -40,6 +50,53 @@ function Home({
 }: HomeProps) {
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [aboutDocumentError, setAboutDocumentError] = useState(false);
+  const aboutDocumentPages = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (homeSection !== "about" || !aboutDocumentPages.current) return;
+
+    const pagesContainer = aboutDocumentPages.current;
+    let cancelled = false;
+    GlobalWorkerOptions.workerSrc = pdfWorker;
+    pagesContainer.replaceChildren();
+    setAboutDocumentError(false);
+
+    const renderDocument = async () => {
+      try {
+        const document = await getDocument({
+          url: "/lifeline-grace-church-about-us.pdf",
+        }).promise;
+
+        for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+          if (cancelled) break;
+
+          const page = await document.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = window.document.createElement("canvas");
+          const context = canvas.getContext("2d");
+
+          if (!context) continue;
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.setAttribute("aria-label", `About Lifeline Grace Church, page ${pageNumber}`);
+          canvas.className = "about-document-page";
+          pagesContainer.append(canvas);
+          await page.render({ canvas, canvasContext: context, viewport }).promise;
+        }
+      } catch {
+        if (!cancelled) setAboutDocumentError(true);
+      }
+    };
+
+    renderDocument();
+
+    return () => {
+      cancelled = true;
+      pagesContainer.replaceChildren();
+    };
+  }, [homeSection]);
 
   useEffect(() => {
     const loadAnnouncements = async () => {
@@ -228,6 +285,7 @@ function Home({
             </button>
 
             <button
+              onClick={() => setHomeSection("contact")}
               style={{
                 border: "none",
                 background: "transparent",
@@ -412,36 +470,64 @@ function Home({
 
       
       {/* ABOUT US PAGE */}
-{homeSection === "about" && (
-        <div
+      {homeSection === "about" && (
+        <div className="about-document-frame">
+          <div ref={aboutDocumentPages} className="about-document-pages" />
+          {aboutDocumentError && (
+            <p className="about-document-error">
+              We could not load the About Us document.
+            </p>
+          )}
+        </div>
+      )}
+
+      {homeSection === "contact" && (
+        <section
           style={{
-            background: "white",
-            color: "black",
-            maxWidth: "1200px",
-            margin: "20px auto",
-            padding: "30px",
-            borderRadius: "10px",
+            width: "min(92%, 760px)",
+            margin: "36px auto",
+            overflow: "hidden",
+            borderRadius: "22px",
+            background: "#ffffff",
+            color: "#172554",
+            boxShadow: "0 18px 45px rgba(0, 0, 0, 0.28)",
           }}
         >
-          <h1>ABOUT LIFELINE GRACE CHURCH</h1>
+          <div
+            style={{
+              padding: "34px 24px 30px",
+              background: "linear-gradient(135deg, #0f766e, #14532d)",
+              color: "white",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: "13px", fontWeight: "bold", letterSpacing: "2px" }}>
+              YOU ARE WELCOME
+            </p>
+            <h1 style={{ margin: "10px 0 0", color: "white", fontSize: "clamp(30px, 5vw, 48px)" }}>
+              CONTACT & LOCATION
+            </h1>
+            <p style={{ margin: "12px 0 0", fontSize: "18px" }}>Lifeline Grace Church</p>
+          </div>
 
-          <p>
-            WRITE OR PASTE YOUR CHURCH HISTORY HERE.
-          </p>
-
-          <p>
-            WRITE OR PASTE YOUR CHURCH VISION HERE.
-          </p>
-
-          <p>
-            WRITE OR PASTE YOUR CHURCH MISSION HERE.
-          </p>
-
-          <p>
-            WRITE ANY OTHER INFORMATION ABOUT LIFELINE
-            GRACE CHURCH HERE.
-          </p>
-        </div>
+          <div style={{ padding: "30px 24px 34px", display: "grid", gap: "20px", textAlign: "left" }}>
+            <div style={{ borderLeft: "5px solid #0f766e", paddingLeft: "16px" }}>
+              <strong style={{ display: "block", color: "#0f766e", marginBottom: "5px" }}>OUR LOCATION</strong>
+              <span>{CONTACT_POSTER.address}</span>
+            </div>
+            <div style={{ borderLeft: "5px solid #65a30d", paddingLeft: "16px" }}>
+              <strong style={{ display: "block", color: "#4d7c0f", marginBottom: "5px" }}>CALL / WHATSAPP</strong>
+              <span>{CONTACT_POSTER.phone}</span>
+            </div>
+            <div style={{ borderLeft: "5px solid #2563eb", paddingLeft: "16px" }}>
+              <strong style={{ display: "block", color: "#1d4ed8", marginBottom: "5px" }}>EMAIL US</strong>
+              <span>{CONTACT_POSTER.email}</span>
+            </div>
+            <div style={{ borderLeft: "5px solid #7c3aed", paddingLeft: "16px" }}>
+              <strong style={{ display: "block", color: "#6d28d9", marginBottom: "5px" }}>SERVICE TIMES</strong>
+              <span>{CONTACT_POSTER.serviceTimes}</span>
+            </div>
+          </div>
+        </section>
       )}
 
       {homeSection === "home" && (

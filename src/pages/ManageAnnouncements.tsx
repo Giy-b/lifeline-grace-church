@@ -22,14 +22,18 @@ function ManageAnnouncements({
   const [announcements, setAnnouncements] = useState<any[]>([]);
 
   const loadAnnouncements = async () => {
-    const res = await fetch(`${API_BASE_URL}/announcements`);
+    const query = new URLSearchParams({
+      branch: selectedBranch,
+      department: announcementDepartment,
+    });
+    const res = await fetch(`${API_BASE_URL}/announcements?${query}`);
     const data = await res.json();
     setAnnouncements(data);
   };
 
   useEffect(() => {
     loadAnnouncements();
-  }, []);
+  }, [selectedBranch, announcementDepartment]);
 
   const publishAnnouncement = async () => {
   if (!title || !message) {

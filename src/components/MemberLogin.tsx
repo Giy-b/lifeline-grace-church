@@ -25,8 +25,8 @@ export default function MemberLogin({
   async function loginMember() {
     const cleanUsername = username.trim();
 
-    if (!cleanUsername || !password) {
-      alert("Please enter your username and password.");
+    if (!selectedBranch || !cleanUsername || !password) {
+      alert("Please select a branch on the Home page and enter your username and password.");
       return;
     }
 
@@ -41,12 +41,15 @@ export default function MemberLogin({
           body: JSON.stringify({
             username: cleanUsername,
             password,
+            branch: selectedBranch,
           }),
         }
       );
 
       const data = await response.json();
 
+      // The backend checks username, password, and the member's saved
+      // branch_id in the members table before returning success.
       if (data.message === "Login successful") {
         // Save the complete logged in member
         setLoggedInMember(data);
@@ -96,12 +99,23 @@ export default function MemberLogin({
           <h2 style={{ margin: 0 }}>👥 MEMBER LOGIN</h2>
 
           <p style={{ marginTop: 8 }}>
-            {selectedBranch} Branch
+            Member Portal
           </p>
         </div>
 
         {/* Body */}
         <div style={{ padding: "30px" }}>
+          <label>Branch</label>
+          <p
+            style={{
+              ...inputStyle,
+              background: "#f3f4f6",
+              color: "#374151",
+            }}
+          >
+            Branch: {selectedBranch}
+          </p>
+
           <label>Username</label>
 
           <input

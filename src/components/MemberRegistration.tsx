@@ -3,21 +3,25 @@ import { useState } from "react";
 
 type MemberRegistrationProps = {
   selectedBranch: string;
+  branches: string[];
   setPage: (page: string) => void;
 };
 
 export default function MemberRegistration({
   selectedBranch,
+  branches,
   setPage,
 }: MemberRegistrationProps) {
   const [fullName, setFullName] = useState("");
   const [gender, setGender] = useState("");
+  const [branch, setBranch] = useState("");
   const [cellGroup, setCellGroup] = useState("");
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const isBungoma = branch === "Bungoma";
 
   async function registerMember() {
     const cleanUsername = username.trim().toLowerCase();
@@ -25,7 +29,8 @@ export default function MemberRegistration({
     if (
       !fullName ||
       !gender ||
-      !cellGroup ||
+      !branch ||
+      (isBungoma && !cellGroup) ||
       !phone ||
       !department ||
       !password ||
@@ -40,6 +45,11 @@ export default function MemberRegistration({
       return;
     }
 
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/members`, {
         method: "POST",
@@ -49,12 +59,12 @@ export default function MemberRegistration({
         body: JSON.stringify({
           full_name: fullName,
           gender: gender,
-          cell_group: cellGroup,
+          cell_group: isBungoma ? cellGroup : "Fellowship",
           phone: phone,
           department: department,
           username: cleanUsername,
           password: password,
-          branch_id: 1,
+          branch,
         }),
       });
 
@@ -132,18 +142,48 @@ export default function MemberRegistration({
             <option>Female</option>
           </select>
 
-          <label>Cell Group</label>
+          <label>Branch</label>
           <select
-            value={cellGroup}
-            onChange={(e) => setCellGroup(e.target.value)}
+            value={branch}
+            onChange={(e) => {
+              const selectedBranch = e.target.value;
+              setBranch(selectedBranch);
+              setCellGroup(selectedBranch === "Bungoma" ? "" : "Fellowship");
+            }}
             style={inputStyle}
           >
-            <option value="">Select Cell Group</option>
-            <option>Cana</option>
-            <option>Bethel</option>
-            <option>Shallom</option>
-            <option>Samaria</option>
+            <option value="">Select Branch</option>
+            {branches.map((branchName) => (
+              <option key={branchName} value={branchName}>
+                {branchName}
+              </option>
+            ))}
           </select>
+
+          <label>Cell Group</label>
+          {isBungoma ? (
+            <>
+              <select
+                value={cellGroup}
+                onChange={(e) => setCellGroup(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">Select Cell Group</option>
+                <option>Cana</option>
+                <option>Bethel</option>
+                <option>Shallom</option>
+                <option>Samaria</option>
+              </select>
+            </>
+          ) : (
+            <input
+              value={branch ? "Fellowship" : ""}
+              readOnly
+              disabled={!branch}
+              placeholder="Select a branch first"
+              style={inputStyle}
+            />
+          )}
 
           <label>Phone Number</label>
           <input
@@ -159,11 +199,9 @@ export default function MemberRegistration({
             style={inputStyle}
           >
             <option value="">Select Department</option>
-            <option>Choir</option>
+            <option>praise and worship</option>
             <option>Youth</option>
-            <option>Women Fellowship</option>
-            <option>Men Fellowship</option>
-            <option>Sunday School</option>
+
             <option>Media</option>
             <option>Ushers</option>
             <option>Evangelism</option>
@@ -177,6 +215,8 @@ export default function MemberRegistration({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
+            placeholder="At least 6 characters"
             style={inputStyle}
           />
 
@@ -185,6 +225,8 @@ export default function MemberRegistration({
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            minLength={6}
+            placeholder="Confirm password"
             style={inputStyle}
           />
 

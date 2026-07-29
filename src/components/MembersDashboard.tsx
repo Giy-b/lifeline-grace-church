@@ -6,6 +6,7 @@ type MembersDashboardProps = {
   setPage: (page: string) => void;
   backPage: string;
   canManageHomeGallery: boolean;
+  isBishopMemberManagement: boolean;
 };
 
 type Member = {
@@ -18,6 +19,7 @@ type Member = {
   username: string;
   password: string;
   branch_id: number;
+  branch_name: string | null;
 };
 
 const emptyMember = {
@@ -30,36 +32,63 @@ const emptyMember = {
   username: "",
   password: "",
   branch_id: 0,
+  branch_name: null,
 };
 
 const cellGroups = ["Cana", "Bethel", "Samaria", "Shalom"];
-const departments = ["Administration", "Cell Group", "Media", "Pastoral", "Youth"];
+// Matches the member-only Department selector in MemberRegistration.tsx.
+// Leader departments intentionally remain separate.
+const memberDepartments = [
+  "praise and worship",
+  "Youth",
+  "Media",
+  "Ushers",
+  "Evangelism",
+];
 
 export default function MembersDashboard({
   selectedBranch,
   setPage,
   backPage,
   canManageHomeGallery,
+  isBishopMemberManagement,
 }: MembersDashboardProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [formMember, setFormMember] = useState<Member>(emptyMember);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<keyof Member>("full_name");
+  // This rule belongs exclusively to the Bishop Dashboard entry point. The
+  // Pastoral Dashboard uses this component too, but keeps its normal cell
+  // group values regardless of branch.
+  const isBishopNonBungomaBranch =
+    isBishopMemberManagement && selectedBranch.trim().toLowerCase() !== "bungoma";
 
   const loadMembers = async () => {
     const response = await fetch(
-      `${API_BASE_URL}/branch-members/${selectedBranch}`
+      `${API_BASE_URL}/members?branch=${encodeURIComponent(selectedBranch)}`
     );
     const data = await response.json();
-    setMembers(data);
+    setMembers(
+      Array.isArray(data)
+        ? data.map((member) => ({
+            ...member,
+            cell_group: isBishopNonBungomaBranch ? "Fellowship" : member.cell_group,
+          }))
+        : []
+    );
   };
 
   useEffect(() => {
+    if (isBishopMemberManagement) {
+      setSelectedMember(null);
+      setFormMember(emptyMember);
+    }
+
     if (selectedBranch) {
       loadMembers();
     }
-  }, [selectedBranch]);
+  }, [selectedBranch, isBishopMemberManagement, isBishopNonBungomaBranch]);
 
   const displayedMembers = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -101,6 +130,11 @@ export default function MembersDashboard({
       return;
     }
 
+    if (!formMember.department) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
     const response = await fetch(
       `${API_BASE_URL}/members/${selectedMember.id}`,
       {
@@ -111,7 +145,7 @@ export default function MembersDashboard({
         body: JSON.stringify({
           full_name: formMember.full_name,
           gender: formMember.gender,
-          cell_group: formMember.cell_group,
+          cell_group: isBishopNonBungomaBranch ? "Fellowship" : formMember.cell_group,
           phone: formMember.phone,
           department: formMember.department,
           username: formMember.username,
@@ -297,18 +331,22 @@ export default function MembersDashboard({
             </select>
 
             <label style={labelStyle}>Cell Group</label>
-            <select
-              value={formMember.cell_group}
-              onChange={(event) => updateForm("cell_group", event.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Select Cell Group</option>
-              {cellGroups.map((cellGroup) => (
-                <option key={cellGroup} value={cellGroup}>
-                  {cellGroup}
-                </option>
-              ))}
-            </select>
+            {!isBishopNonBungomaBranch ? (
+              <select
+                value={formMember.cell_group}
+                onChange={(event) => updateForm("cell_group", event.target.value)}
+                style={inputStyle}
+              >
+                <option value="">Select Cell Group</option>
+                {cellGroups.map((cellGroup) => (
+                  <option key={cellGroup} value={cellGroup}>
+                    {cellGroup}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value="Fellowship" readOnly style={inputStyle} />
+            )}
 
             <label style={labelStyle}>Department</label>
             <select
@@ -317,7 +355,7 @@ export default function MembersDashboard({
               style={inputStyle}
             >
               <option value="">Select Department</option>
-              {departments.map((department) => (
+              {memberDepartments.map((department) => (
                 <option key={department} value={department}>
                   {department}
                 </option>
@@ -365,7 +403,7 @@ export default function MembersDashboard({
             }}
           >
             <h3 style={{ textAlign: "center", margin: "4px 0 14px" }}>
-              REGISTERED MEMBERS
+              REGISTERED MEMBERS — {selectedBranch.toUpperCase()} BRANCH
             </h3>
 
             <table
@@ -386,13 +424,14 @@ export default function MembersDashboard({
                   <th style={thStyle}>Department</th>
                   <th style={thStyle}>Username</th>
                   <th style={thStyle}>Password</th>
+                  <th style={thStyle}>Branch</th>
                 </tr>
               </thead>
 
               <tbody>
                 {displayedMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: "18px", textAlign: "center" }}>
+                    <td colSpan={9} style={{ padding: "18px", textAlign: "center" }}>
                       No registered members found.
                     </td>
                   </tr>
@@ -416,6 +455,7 @@ export default function MembersDashboard({
                       <td style={tdStyle}>{member.department}</td>
                       <td style={tdStyle}>{member.username}</td>
                       <td style={tdStyle}>{member.password}</td>
+                      <td style={tdStyle}>{member.branch_name || "Unassigned"}</td>
                     </tr>
                   ))
                 )}

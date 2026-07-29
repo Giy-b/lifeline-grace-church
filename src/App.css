@@ -182,3 +182,27 @@
     border-right-color: var(--border);
   }
 }
+
+.about-document-frame {
+  width: 100%;
+  padding: 26px 20px;
+  box-sizing: border-box;
+}
+
+.about-document-pages {
+  width: min(100%, 533px);
+  margin: 0 auto;
+  display: grid;
+  gap: 22px;
+}
+
+.about-document-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: white;
+}
+
+.about-document-error {
+  color: white;
+}

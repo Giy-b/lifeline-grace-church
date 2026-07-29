@@ -4,18 +4,21 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import text
 from database import engine
-from typing import List
+from typing import List, Optional
 import shutil
 import os
 import uuid
 import json
 import logging
 import sys
+import asyncio
 from pathlib import Path
+from datetime import datetime, timedelta, date
 
 
 logger = logging.getLogger("lifeline_grace.api")
 app = FastAPI()
+media_cleanup_task = None
 
 
 # =========================
@@ -68,11 +71,15 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Vite may use the next available local port when 5173 is occupied.
+    # Permit local development origins only; production domains remain explicit.
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1):\d+$",
 )
 
 
 @app.on_event("startup")
 async def log_runtime_configuration() -> None:
+    global media_cleanup_task
     """Make the loaded application and effective CORS policy visible in Railway logs."""
     logger.warning(
         "API startup: module=%s file=%s uvicorn_command=%s "
@@ -83,6 +90,15 @@ async def log_runtime_configuration() -> None:
         sorted(configured_frontend_origins),
         allow_origins,
     )
+    ensure_media_library_table()
+    remove_expired_media_library_items()
+    media_cleanup_task = asyncio.create_task(run_scheduled_media_cleanup())
+
+
+@app.on_event("shutdown")
+async def stop_scheduled_media_cleanup() -> None:
+    if media_cleanup_task:
+        media_cleanup_task.cancel()
 
 
 
@@ -102,12 +118,14 @@ class Leader(BaseModel):
 class Member(BaseModel):
     full_name: str
     gender: str
-    cell_group: str
+    # Non-Bungoma registrations do not need to submit this field; the server
+    # assigns their fellowship below so the rule cannot be bypassed by an API client.
+    cell_group: Optional[str] = None
     phone: str
     department: str
     username: str
     password: str
-    branch_id: int
+    branch: str
 class MemberUpdate(BaseModel):
     full_name: str
     gender: str
@@ -116,6 +134,34 @@ class MemberUpdate(BaseModel):
     department: str
     username: str
     password: str
+
+
+BUNGOMA_BRANCH = "Bungoma"
+BUNGOMA_CELL_GROUPS = {"Cana", "Bethel", "Shallom", "Samaria"}
+
+
+def validate_new_member_password(password: str) -> None:
+    """Require a password of at least six characters for new member accounts."""
+    if len(password) < 6:
+        raise HTTPException(
+            status_code=422,
+            detail="Member password must be at least 6 characters long",
+        )
+
+
+def member_cell_group_for_branch(branch_name: str, submitted_cell_group: Optional[str]) -> str:
+    """Return the only permitted member cell group for a branch."""
+    if branch_name != BUNGOMA_BRANCH:
+        return "Fellowship"
+
+    cell_group = (submitted_cell_group or "").strip()
+    if cell_group not in BUNGOMA_CELL_GROUPS:
+        raise HTTPException(
+            status_code=422,
+            detail="Bungoma registrations require a valid cell group",
+        )
+
+    return cell_group
 class HomeVisitReport(BaseModel):
     branch: str
     cell_group: str
@@ -135,6 +181,18 @@ class LiveMediaLink(BaseModel):
     platform: str
     link: str
     uploaded_by: str
+
+
+class ServiceStatisticsPayload(BaseModel):
+    branch: str
+    service_date: str
+    adult_attendance: int
+    sunday_school_attendance: int
+    main_service_offering: float
+    sunday_school_offering: float
+    created_by: str
+    actor_role: str
+    actor_branch: str
 
 class DedicationRecord(BaseModel):
     child_name: str
@@ -207,6 +265,15 @@ def ensure_core_tables():
             """)
         )
 
+        # Existing deployments may already have this table without the live
+        # state column, so add it without disturbing saved media records.
+        add_column_if_missing(
+            connection,
+            "media_library",
+            "is_live",
+            "BOOLEAN DEFAULT FALSE",
+        )
+
         connection.execute(
             text(f"""
                 CREATE TABLE IF NOT EXISTS bishops
@@ -247,8 +314,22 @@ def ensure_core_tables():
                     department VARCHAR(100),
                     username VARCHAR(100) NOT NULL,
                     password VARCHAR(255) NOT NULL,
-                    branch_id INTEGER NOT NULL
+                    branch_id INTEGER NOT NULL,
+                    branch VARCHAR(100)
                 )
+            """)
+        )
+
+        # Keep the readable branch name on the member record as well as the
+        # existing branch_id. This also fills the value for existing members.
+        add_column_if_missing(connection, "members", "branch", "VARCHAR(100)")
+        connection.execute(
+            text("""
+                UPDATE members
+                SET branch = (
+                    SELECT branch_name FROM branches WHERE branches.id = members.branch_id
+                )
+                WHERE branch IS NULL OR TRIM(branch) = ''
             """)
         )
 
@@ -463,14 +544,89 @@ def ensure_media_library_table():
             """)
         )
 
-        # Existing deployments may already have this table without the live
-        # state column, so add it without disturbing saved media records.
-        add_column_if_missing(
-            connection,
-            "media_library",
-            "is_live",
-            "BOOLEAN DEFAULT FALSE",
-        )
+
+def ensure_service_statistics_table():
+    id_column = "INTEGER PRIMARY KEY AUTOINCREMENT" if engine.dialect.name == "sqlite" else "SERIAL PRIMARY KEY"
+    with engine.begin() as connection:
+        connection.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS service_statistics (
+                id {id_column}, branch_id INTEGER NOT NULL, service_date DATE NOT NULL,
+                adult_attendance INTEGER NOT NULL DEFAULT 0,
+                sunday_school_attendance INTEGER NOT NULL DEFAULT 0,
+                main_service_offering NUMERIC NOT NULL DEFAULT 0,
+                sunday_school_offering NUMERIC NOT NULL DEFAULT 0,
+                created_by VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(branch_id, service_date)
+            )
+        """))
+
+
+def validate_service_statistics(payload: ServiceStatisticsPayload, allowed_roles: set[str]) -> None:
+    if payload.actor_role.strip().lower() not in allowed_roles:
+        raise HTTPException(status_code=403, detail="You are not authorized to manage service statistics")
+    if payload.actor_branch.strip().lower() != payload.branch.strip().lower():
+        raise HTTPException(status_code=403, detail="Service statistics must be kept within your branch")
+    if min(payload.adult_attendance, payload.sunday_school_attendance) < 0:
+        raise HTTPException(status_code=422, detail="Attendance values cannot be negative")
+    if min(payload.main_service_offering, payload.sunday_school_offering) < 0:
+        raise HTTPException(status_code=422, detail="Offering values cannot be negative")
+    try:
+        date.fromisoformat(payload.service_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="A valid service date is required")
+
+
+def service_statistics_branch_id(connection, branch: str) -> int:
+    row = connection.execute(text("SELECT id FROM branches WHERE branch_name = :branch"), {"branch": branch}).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Selected branch was not found")
+    return row.id
+
+MEDIA_RETENTION_DAYS = 25
+
+
+def remove_expired_media_library_items() -> None:
+    """Remove media records and uploaded files once they are older than 25 days."""
+    cutoff = datetime.utcnow() - timedelta(days=MEDIA_RETENTION_DAYS)
+    upload_root = UPLOAD_FOLDER.resolve()
+
+    with engine.begin() as connection:
+        expired_items = connection.execute(
+            text("""
+                SELECT id, file_path
+                FROM media_library
+                WHERE created_at < :cutoff
+            """),
+            {"cutoff": cutoff},
+        ).fetchall()
+
+        for item in expired_items:
+            if not item.file_path:
+                continue
+
+            try:
+                stored_file = (UPLOAD_FOLDER / item.file_path).resolve()
+                stored_file.relative_to(upload_root)
+                if stored_file.is_file():
+                    stored_file.unlink()
+            except (OSError, ValueError):
+                logger.warning("Unable to remove expired media file: %s", item.file_path)
+
+        if expired_items:
+            connection.execute(
+                text("DELETE FROM media_library WHERE created_at < :cutoff"),
+                {"cutoff": cutoff},
+            )
+
+
+async def run_scheduled_media_cleanup() -> None:
+    """Keep retention active even when nobody opens the media library."""
+    while True:
+        await asyncio.sleep(60 * 60)
+        try:
+            await asyncio.to_thread(remove_expired_media_library_items)
+        except Exception:
+            logger.exception("Scheduled media-library cleanup failed")
 
 @app.put("/chat-messages/{message_id}")
 def edit_chat_message(message_id: int, message: dict):
@@ -1732,10 +1888,50 @@ def import_home_visit_report(report_id: int, data: dict):
 # REGISTER MEMBER
 # =========================
 
+@app.get("/members")
+def get_members_for_management(branch: str):
+    with engine.connect() as connection:
+        result = connection.execute(
+            text("""
+                SELECT
+                    m.id,
+                    m.full_name,
+                    m.gender,
+                    m.cell_group,
+                    m.phone,
+                    m.department,
+                    m.username,
+                    m.password,
+                    m.branch_id,
+                    b.branch_name
+                FROM members m
+                JOIN branches b ON m.branch_id = b.id
+                WHERE b.branch_name = :branch
+                ORDER BY m.full_name
+            """),
+            {"branch": branch},
+        )
+
+        return [dict(row._mapping) for row in result]
+
 @app.post("/members")
 def register_member(member: Member):
 
+    validate_new_member_password(member.password)
+
     with engine.begin() as connection:
+
+        branch_row = connection.execute(
+            text("SELECT id, branch_name FROM branches WHERE branch_name = :branch"),
+            {"branch": member.branch},
+        ).fetchone()
+
+        if branch_row is None:
+            raise HTTPException(status_code=404, detail="Selected branch was not found")
+
+        cell_group = member_cell_group_for_branch(
+            branch_row.branch_name, member.cell_group
+        )
 
         # First choice: first name
         username = normalize_username(member.username)
@@ -1798,6 +1994,7 @@ def register_member(member: Member):
                     phone,
                     gender,
                     branch_id,
+                    branch,
                     cell_group,
                     username,
                     department,
@@ -1810,6 +2007,7 @@ def register_member(member: Member):
                     :phone,
                     :gender,
                     :branch_id,
+                    :branch,
                     :cell_group,
                     :username,
                     :department,
@@ -1820,8 +2018,9 @@ def register_member(member: Member):
                 "full_name": member.full_name,
                 "phone": member.phone,
                 "gender": member.gender,
-                "branch_id": member.branch_id,
-                "cell_group": member.cell_group,
+                "branch_id": branch_row.id,
+                "branch": branch_row.branch_name,
+                "cell_group": cell_group,
                 "username": username,
                 "department": member.department,
                 "password": member.password,
@@ -1881,6 +2080,23 @@ def update_member(member_id: int, member: MemberUpdate):
 
     with engine.begin() as connection:
 
+        branch_row = connection.execute(
+            text("""
+                SELECT b.branch_name
+                FROM members m
+                JOIN branches b ON m.branch_id = b.id
+                WHERE m.id = :id
+            """),
+            {"id": member_id},
+        ).fetchone()
+
+        if branch_row is None:
+            raise HTTPException(status_code=404, detail="Member not found")
+
+        cell_group = member_cell_group_for_branch(
+            branch_row.branch_name, member.cell_group
+        )
+
         result = connection.execute(
             text("""
                 UPDATE members
@@ -1898,7 +2114,7 @@ def update_member(member_id: int, member: MemberUpdate):
                 "id": member_id,
                 "full_name": member.full_name,
                 "gender": member.gender,
-                "cell_group": member.cell_group,
+                "cell_group": cell_group,
                 "phone": member.phone,
                 "department": member.department,
                 "username": normalize_username(member.username),
@@ -1939,6 +2155,7 @@ def delete_member(member_id: int):
 class MemberLogin(BaseModel):
     username: str
     password: str
+    branch: str
 
 
 class BishopLogin(BaseModel):
@@ -2075,6 +2292,7 @@ async def upload_chat_file(
 @app.get("/media-library/live-status")
 def get_live_media_status():
     ensure_media_library_table()
+    remove_expired_media_library_items()
 
     with engine.connect() as connection:
         live_media = connection.execute(
@@ -2107,6 +2325,7 @@ def get_live_media_status():
 @app.get("/media-library/{branch}")
 def get_media_library(branch: str):
     ensure_media_library_table()
+    remove_expired_media_library_items()
 
     with engine.connect() as connection:
         result = connection.execute(
@@ -2152,6 +2371,7 @@ async def upload_media_library(
     files: List[UploadFile] = File(...),
 ):
     ensure_media_library_table()
+    remove_expired_media_library_items()
 
     image_extensions = ["jpg", "jpeg", "png", "gif", "webp"]
     video_extensions = ["mp4", "mov", "avi", "mkv", "webm"]
@@ -2207,6 +2427,7 @@ async def upload_media_library(
 @app.post("/media-library/live-link")
 def save_live_media_link(media: LiveMediaLink):
     ensure_media_library_table()
+    remove_expired_media_library_items()
 
     with engine.begin() as connection:
         connection.execute(
@@ -2253,6 +2474,7 @@ def save_live_media_link(media: LiveMediaLink):
 @app.post("/media-library/live-status/stop")
 def stop_live_media():
     ensure_media_library_table()
+    remove_expired_media_library_items()
 
     with engine.begin() as connection:
         connection.execute(
@@ -2296,6 +2518,94 @@ def delete_media_library_item(media_id: int):
         )
 
     return {"message": "Media item deleted"}
+
+
+# =========================
+# SERVICE STATISTICS
+# =========================
+
+@app.get("/service-statistics")
+def get_service_statistics(branch: str, service_date: Optional[str] = None, month: Optional[int] = None, year: Optional[int] = None):
+    ensure_service_statistics_table()
+    filters = ["branch_id = :branch_id"]
+    params = {}
+    with engine.connect() as connection:
+        params["branch_id"] = service_statistics_branch_id(connection, branch)
+        if service_date:
+            filters.append("service_date = :service_date")
+            params["service_date"] = service_date
+        elif month and year:
+            if month < 1 or month > 12:
+                raise HTTPException(status_code=422, detail="Month must be between 1 and 12")
+            start = date(year, month, 1)
+            end = date(year + (month == 12), 1 if month == 12 else month + 1, 1)
+            filters.extend(["service_date >= :start_date", "service_date < :end_date"])
+            params.update({"start_date": start, "end_date": end})
+        elif year:
+            filters.extend(["service_date >= :start_date", "service_date < :end_date"])
+            params.update({"start_date": date(year, 1, 1), "end_date": date(year + 1, 1, 1)})
+
+        rows = connection.execute(text(f"""
+            SELECT id, service_date, adult_attendance, sunday_school_attendance,
+                   main_service_offering, sunday_school_offering, created_by, created_at
+            FROM service_statistics WHERE {' AND '.join(filters)}
+            ORDER BY service_date DESC, id DESC
+        """), params).fetchall()
+
+    items = [{
+        "id": row.id, "service_date": str(row.service_date),
+        "adult_attendance": int(row.adult_attendance),
+        "sunday_school_attendance": int(row.sunday_school_attendance),
+        "main_service_offering": float(row.main_service_offering),
+        "sunday_school_offering": float(row.sunday_school_offering),
+        "created_by": row.created_by, "created_at": str(row.created_at),
+    } for row in rows]
+    return {"items": items, "summary": {
+        "adult_attendance": sum(item["adult_attendance"] for item in items),
+        "sunday_school_attendance": sum(item["sunday_school_attendance"] for item in items),
+        "main_service_offering": sum(item["main_service_offering"] for item in items),
+        "sunday_school_offering": sum(item["sunday_school_offering"] for item in items),
+    }}
+
+
+@app.post("/service-statistics")
+def create_service_statistics(payload: ServiceStatisticsPayload):
+    ensure_service_statistics_table()
+    validate_service_statistics(payload, {"secretary"})
+    with engine.begin() as connection:
+        branch_id = service_statistics_branch_id(connection, payload.branch)
+        existing = connection.execute(text("SELECT id FROM service_statistics WHERE branch_id=:branch_id AND service_date=:service_date"), {"branch_id": branch_id, "service_date": payload.service_date}).fetchone()
+        if existing:
+            raise HTTPException(status_code=409, detail="Statistics already exist for this service date. Update the record instead.")
+        connection.execute(text("""INSERT INTO service_statistics (branch_id, service_date, adult_attendance, sunday_school_attendance, main_service_offering, sunday_school_offering, created_by)
+            VALUES (:branch_id, :service_date, :adult_attendance, :sunday_school_attendance, :main_service_offering, :sunday_school_offering, :created_by)"""), {**payload.dict(exclude={"branch", "actor_role", "actor_branch"}), "branch_id": branch_id})
+    return {"message": "Service statistics saved successfully"}
+
+
+@app.put("/service-statistics/{statistics_id}")
+def update_service_statistics(statistics_id: int, payload: ServiceStatisticsPayload):
+    ensure_service_statistics_table()
+    validate_service_statistics(payload, {"secretary", "bishop", "pastoral"})
+    with engine.begin() as connection:
+        branch_id = service_statistics_branch_id(connection, payload.branch)
+        result = connection.execute(text("""UPDATE service_statistics SET service_date=:service_date, adult_attendance=:adult_attendance, sunday_school_attendance=:sunday_school_attendance,
+            main_service_offering=:main_service_offering, sunday_school_offering=:sunday_school_offering, created_by=:created_by
+            WHERE id=:id AND branch_id=:branch_id"""), {**payload.dict(exclude={"branch", "actor_role", "actor_branch"}), "id": statistics_id, "branch_id": branch_id})
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Statistics record was not found in this branch")
+    return {"message": "Service statistics updated successfully"}
+
+
+@app.delete("/service-statistics/{statistics_id}")
+def delete_service_statistics(statistics_id: int, payload: ServiceStatisticsPayload):
+    ensure_service_statistics_table()
+    validate_service_statistics(payload, {"bishop", "pastoral"})
+    with engine.begin() as connection:
+        branch_id = service_statistics_branch_id(connection, payload.branch)
+        result = connection.execute(text("DELETE FROM service_statistics WHERE id=:id AND branch_id=:branch_id"), {"id": statistics_id, "branch_id": branch_id})
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Statistics record was not found in this branch")
+    return {"message": "Service statistics deleted successfully"}
 #=========================
 # MEMBER LOGIN
 # =========================
@@ -2303,35 +2613,53 @@ def delete_media_library_item(media_id: int):
 def member_login(member: MemberLogin):
 
     with engine.connect() as connection:
+        selected_branch = connection.execute(
+            text("""
+                SELECT id
+                FROM branches
+                WHERE LOWER(TRIM(branch_name)) = LOWER(TRIM(:branch))
+            """),
+            {"branch": member.branch},
+        ).fetchone()
+
+        if selected_branch is None:
+            return {
+                "message": "Invalid username, password or branch."
+            }
 
         result = connection.execute(
 
             text("""
                 SELECT
-                    id,
-                    full_name,
-                    username,
-                    password,
-                    department,
-                    branch_id,
-                    cell_group
+                    m.id,
+                    m.full_name,
+                    m.username,
+                    m.password,
+                    m.department,
+                    m.branch_id,
+                    m.cell_group,
+                    b.branch_name
 
-                FROM members
+                FROM members m
+                INNER JOIN branches b
+                    ON m.branch_id = b.id
 
-                WHERE LOWER(REPLACE(TRIM(username), ' ', '')) = :username
-                AND password = :password
+                WHERE LOWER(REPLACE(TRIM(m.username), ' ', '')) = :username
+                AND m.password = :password
+                AND m.branch_id = :branch_id
             """),
 
             {
                 "username": normalize_username(member.username),
                 "password": member.password,
+                "branch_id": selected_branch.id,
             }
 
         ).fetchone()
 
     if result is None:
         return {
-            "message": "Invalid username or password"
+            "message": "Invalid username, password or branch."
         }
 
     return {
@@ -2342,6 +2670,7 @@ def member_login(member: MemberLogin):
         "department": result.department,
         "branch_id": result.branch_id,
         "cell_group": result.cell_group,
+        "branch": result.branch_name,
     }
 # =========================
 # HOME
@@ -2557,11 +2886,23 @@ class Announcement(BaseModel):
 # ======================================
 
 @app.get("/announcements")
-def get_announcements():
+def get_announcements(
+    branch: Optional[str] = None,
+    department: Optional[str] = None,
+):
 
     with engine.connect() as connection:
+        filters = []
+        params = {}
+        if branch:
+            filters.append("branch = :branch")
+            params["branch"] = branch
+        if department:
+            filters.append("department = :department")
+            params["department"] = department
 
-        result = connection.execute(text("""
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+        result = connection.execute(text(f"""
             SELECT
                 id,
                 title,
@@ -2571,8 +2912,9 @@ def get_announcements():
                 posted_by,
                 created_at
             FROM announcements
+            {where_clause}
             ORDER BY id DESC
-        """))
+        """), params)
 
         return [
             {
