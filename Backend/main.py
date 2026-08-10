@@ -265,15 +265,6 @@ def ensure_core_tables():
             """)
         )
 
-        # Existing deployments may already have this table without the live
-        # state column, so add it without disturbing saved media records.
-        add_column_if_missing(
-            connection,
-            "media_library",
-            "is_live",
-            "BOOLEAN DEFAULT FALSE",
-        )
-
         connection.execute(
             text(f"""
                 CREATE TABLE IF NOT EXISTS bishops
