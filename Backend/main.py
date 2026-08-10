@@ -90,6 +90,7 @@ async def log_runtime_configuration() -> None:
         sorted(configured_frontend_origins),
         allow_origins,
     )
+    ensure_core_tables()
     ensure_media_library_table()
     remove_expired_media_library_items()
     media_cleanup_task = asyncio.create_task(run_scheduled_media_cleanup())
