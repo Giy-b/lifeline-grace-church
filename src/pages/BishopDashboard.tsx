@@ -48,7 +48,7 @@ function BishopDashboard({
           }}
         >
           <h1 style={{ margin: 0 }}>
-            👨‍⚖️ Bishop Dashboard
+            Pastor Dashboard
           </h1>
 
           <h2

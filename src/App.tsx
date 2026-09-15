@@ -38,6 +38,52 @@ type BranchImage = {
   image_path: string;
 };
 
+const validPageRoutes = new Set([
+  "home",
+  "members-portal-dashboard",
+  "secretary-dashboard",
+  "pastoral-dashboard",
+  "baptism-register",
+  "member-visitation",
+  "counselling",
+  "prayer-requests",
+  "church-oversight",
+  "member-login",
+  "member-registration",
+  "manage-branch-gallery",
+  "manage-home-gallery",
+  "members-dashboard",
+  "bishop-dashboard",
+  "media-dashboard",
+  "finance-dashboard",
+  "cana-dashboard",
+  "bethel-dashboard",
+  "live-stream",
+  "media-library-admin",
+  "member-media-library",
+  "cell-group-page",
+  "samaria-dashboard",
+  "shalom-dashboard",
+  "service-statistics-entry",
+  "bishop-service-statistics",
+  "pastoral-service-statistics",
+  "fellowship-dashboard",
+  "department-dashboard",
+  "group-chat",
+  "manage-announcements",
+  "administration-dashboard",
+  "cell-group-dashboard",
+  "youth-dashboard",
+  "leaders-management",
+  "branch-dashboard",
+  "leader-login",
+]);
+
+const pageFromPath = (path: string) => {
+  const requestedPage = path.replace(/^\//, "").replace(/\/$/, "") || "home";
+  return validPageRoutes.has(requestedPage) ? requestedPage : "home";
+};
+
 function App() {
 const [loggedInMember, setLoggedInMember] = useState<LoggedInMember | null>(null);
 const [isBishopAccess, setIsBishopAccess] = useState(false);
@@ -54,8 +100,7 @@ const [liveLink, setLiveLink] = useState("");
 
   // Initialize page from URL on first mount and ensure history state exists
   useEffect(() => {
-    const path = window.location.pathname.replace(/^\//, "");
-    const initial = path || "home";
+    const initial = pageFromPath(window.location.pathname);
     if (initial !== page) {
       // sync state to URL-derived page without pushing a new history entry
       isHandlingPop.current = true;
@@ -74,6 +119,12 @@ const [liveLink, setLiveLink] = useState("");
       return;
     }
 
+    if (!validPageRoutes.has(page)) {
+      window.history.replaceState({ page: "home" }, "", "/home");
+      setPage("home");
+      return;
+    }
+
     try {
       const safePath = page || "home";
       window.history.pushState({ page: safePath }, "", `/${safePath}`);
@@ -85,7 +136,11 @@ const [liveLink, setLiveLink] = useState("");
   // React to browser Back/Forward (popstate) and update the app page state
   useEffect(() => {
     const onPop = (ev: PopStateEvent) => {
-      const incoming = (ev.state && (ev.state as any).page) || window.location.pathname.replace(/^\//, "") || "home";
+      const historyPage = (ev.state && (ev.state as { page?: string }).page) || window.location.pathname;
+      const incoming = pageFromPath(historyPage);
+      if (incoming === "home" && !validPageRoutes.has(String(historyPage).replace(/^\//, "").replace(/\/$/, ""))) {
+        window.history.replaceState({ page: "home" }, "", "/home");
+      }
       isHandlingPop.current = true;
       setPage(incoming);
     };
@@ -1166,7 +1221,7 @@ const bishopLogin = async () => {
                 boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
               }}
             >
-              <h2>👨‍⚖️ Bishop Portal</h2>
+              <h2>Pastor Portal</h2>
 
               <p>Full Branch Administration</p>
 
@@ -1352,7 +1407,7 @@ No images uploaded yet
           textAlign: "center",
         }}
       >
-      <h2>👨‍⚖️ Bishop Login</h2>
+      <h2>Pastor Login</h2>
 
       <p style={{ margin: "8px 0 0" }}>
         {selectedBranch} Branch

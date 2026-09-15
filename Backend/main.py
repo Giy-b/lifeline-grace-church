@@ -977,6 +977,9 @@ def ensure_finance_reporting_tables():
 
 
 ensure_core_tables()
+# Create this table during schema initialization so any future column
+# migrations against it cannot run before the table exists.
+ensure_media_library_table()
 ensure_finance_reporting_tables()
 ensure_bishop_oversight_tables()
 

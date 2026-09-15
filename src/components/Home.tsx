@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { API_BASE_URL } from "../config/api";
 
 // Update these details to change the Contact / Location poster on the home page.
 const CONTACT_POSTER = {
@@ -9,16 +8,6 @@ const CONTACT_POSTER = {
   phone: "0726267863",
   email: "lifelgchurch@gmail.com",
   serviceTimes: " Sundays at 8:00 AM -12:00 AM ",
-};
-
-type Announcement = {
-  id: number;
-  title: string;
-  message: string;
-  department: string;
-  branch: string;
-  posted_by: string;
-  created_at: string;
 };
 
 type HomeProps = {
@@ -48,8 +37,6 @@ function Home({
   livePlatform,
   liveLink,
 }: HomeProps) {
-  const [showAnnouncements, setShowAnnouncements] = useState(false);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [aboutDocumentError, setAboutDocumentError] = useState(false);
   const aboutDocumentPages = useRef<HTMLDivElement>(null);
 
@@ -97,43 +84,6 @@ function Home({
       pagesContainer.replaceChildren();
     };
   }, [homeSection]);
-
-  useEffect(() => {
-    const loadAnnouncements = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/announcements`);
-        const data = await response.json();
-
-        if (Array.isArray(data)) {
-          setAnnouncements(data);
-        }
-      } catch (error) {
-        setAnnouncements([]);
-      }
-    };
-
-    loadAnnouncements();
-    const interval = setInterval(loadAnnouncements, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const secretaryAnnouncements = useMemo(
-    () =>
-      announcements
-        .filter(
-          (announcement) =>
-            String(announcement.department || "").toLowerCase() ===
-            "administration"
-        )
-        .sort((first, second) => {
-          const firstTime = new Date(first.created_at).getTime() || first.id;
-          const secondTime = new Date(second.created_at).getTime() || second.id;
-
-          return secondTime - firstTime;
-        }),
-    [announcements]
-  );
 
   return (
     <div
@@ -296,28 +246,6 @@ function Home({
               CONTACT / LOCATION
             </button>
 
-            <button
-              onClick={() => setShowAnnouncements((current) => !current)}
-              style={{
-                background:
-                  secretaryAnnouncements.length > 0 ? "#f59e0b" : "#9ca3af",
-                color: "#111827",
-                border: "none",
-                padding: "9px 14px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                animation:
-                  secretaryAnnouncements.length > 0
-                    ? "blink 1s infinite"
-                    : "none",
-              }}
-            >
-              ANNOUNCEMENTS
-              {secretaryAnnouncements.length > 0
-                ? ` (${secretaryAnnouncements.length})`
-                : ""}
-            </button>
      {/* LIVE NOTIFICATION */}
       <div
         style={{
@@ -367,104 +295,6 @@ function Home({
 
           </div>
 
-          {showAnnouncements && (
-            <div
-              style={{
-                background: "#fff7ed",
-                color: "#111827",
-                borderTop: "1px solid #fed7aa",
-                padding: "18px",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  color: "#9a3412",
-                  fontSize: "18px",
-                }}
-              >
-                Church Secretary Announcements
-              </h3>
-
-              {secretaryAnnouncements.length === 0 ? (
-                <p style={{ margin: 0 }}>No announcements posted yet.</p>
-              ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gap: "12px",
-                  }}
-                >
-                  {secretaryAnnouncements.map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      style={{
-                        background: "white",
-                        border: "1px solid #fed7aa",
-                        borderRadius: "8px",
-                        padding: "14px",
-                        textAlign: "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <h4
-                          style={{
-                            margin: 0,
-                            color: "#111827",
-                            fontSize: "16px",
-                          }}
-                        >
-                          {announcement.title}
-                        </h4>
-
-                        <span
-                          style={{
-                            color: "#6b7280",
-                            fontSize: "12px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {announcement.branch}
-                        </span>
-                      </div>
-
-                      <p
-                        style={{
-                          margin: "8px 0",
-                          color: "#374151",
-                          lineHeight: 1.45,
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {announcement.message}
-                      </p>
-
-                      <div
-                        style={{
-                          color: "#6b7280",
-                          fontSize: "12px",
-                        }}
-                      >
-                        Posted by {announcement.posted_by}
-                        {announcement.created_at
-                          ? ` | ${new Date(
-                              announcement.created_at
-                            ).toLocaleString()}`
-                          : ""}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

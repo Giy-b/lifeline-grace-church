@@ -152,7 +152,7 @@ const saveExpense = async () => {
   loadExpenses();
 };
 const generateFinancialReport = async () => {
-  if (!window.confirm("Generate this finance report and start a new active finance cycle?")) {
+  if (!window.confirm("Submit today's finance information to Church Oversight?")) {
     return;
   }
 
@@ -173,7 +173,7 @@ const generateFinancialReport = async () => {
 
     const data = await response.json();
 
-    alert(data.message);
+    alert(response.ok ? "Daily finance report submitted to Church Oversight." : (data.detail || "Unable to submit the daily finance report."));
 
     if (response.ok) {
       loadIncome();
@@ -262,11 +262,14 @@ const sortedFinancialReports = [...financialReports].sort((firstReport, secondRe
 });
 
 const latestReport = sortedFinancialReports[0];
-const openReportPreview = () => {
-  setIsReportPreviewOpen(true);
-};
+const openReportPreview = () => setIsReportPreviewOpen(true);
 
 const saveSundayOfferings = async () => {
+  if (!loggedInLeader?.branch || !loggedInLeader?.full_name) {
+    alert("Please sign in again before saving offerings.");
+    return;
+  }
+
   try {
     const records = [];
 
@@ -292,14 +295,24 @@ const saveSundayOfferings = async () => {
       });
     }
 
+    if (records.length === 0) {
+      alert("Enter an offering amount before saving.");
+      return;
+    }
+
     for (const record of records) {
-      await fetch(`${API_BASE_URL}/income`, {
+      const response = await fetch(`${API_BASE_URL}/income`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(record),
       });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.detail || error?.message || "The server could not save the offering.");
+      }
     }
 
     alert("Offerings saved successfully.");
@@ -310,8 +323,8 @@ const saveSundayOfferings = async () => {
     loadIncome();
 
   } catch (err) {
-    console.error(err);
-    alert("Failed to save offerings.");
+    console.error("Unable to save offerings:", err);
+    alert(err instanceof Error ? err.message : "Unable to connect to the server. Please try again.");
   }
 };
 useEffect(() => {
@@ -589,8 +602,14 @@ useEffect(() => {
   month: "long",
   year: "numeric",
 })}
-            </div>
-          </div>
+             </div>
+             <button
+               onClick={generateFinancialReport}
+               style={{ background: "#5b21b6", color: "white", border: "none", borderRadius: "8px", padding: "10px 16px", cursor: "pointer", fontWeight: "bold" }}
+             >
+               Submit
+             </button>
+           </div>
                     {/* ================= FINANCE CARDS ================= */}
 <div
   style={{
@@ -615,7 +634,7 @@ useEffect(() => {
     borderRadius: "18px",
     padding: "24px",
     minHeight: "220px",
-    display: "flex",
+    display: "none",
     flexDirection: "column",
     justifyContent: "space-between",
     boxShadow: "0 8px 20px rgba(0,0,0,.15)",
