@@ -30,10 +30,14 @@ media_cleanup_task = None
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
 
+def cloudinary_setting(name: str) -> str:
+    return os.getenv(name, "").strip()
+
+
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    cloud_name=cloudinary_setting("CLOUDINARY_CLOUD_NAME"),
+    api_key=cloudinary_setting("CLOUDINARY_API_KEY"),
+    api_secret=cloudinary_setting("CLOUDINARY_API_SECRET"),
     secure=True,
 )
 
@@ -42,9 +46,9 @@ def upload_gallery_image(file: UploadFile, folder: str) -> tuple[str, str]:
     """Upload a gallery image to persistent Cloudinary storage."""
     if not all(
         [
-            os.getenv("CLOUDINARY_CLOUD_NAME"),
-            os.getenv("CLOUDINARY_API_KEY"),
-            os.getenv("CLOUDINARY_API_SECRET"),
+            cloudinary_setting("CLOUDINARY_CLOUD_NAME"),
+            cloudinary_setting("CLOUDINARY_API_KEY"),
+            cloudinary_setting("CLOUDINARY_API_SECRET"),
         ]
     ):
         raise HTTPException(
