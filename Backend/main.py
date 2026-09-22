@@ -61,7 +61,10 @@ def upload_gallery_image(file: UploadFile, folder: str) -> tuple[str, str]:
         return uploaded["secure_url"], uploaded["public_id"]
     except Exception as exc:
         logger.exception("Cloudinary gallery upload failed")
-        raise HTTPException(status_code=502, detail="Image upload failed. Please try again.") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"Cloudinary upload failed: {type(exc).__name__}: {str(exc)}",
+        ) from exc
 
 if not UPLOAD_FOLDER.exists():
     UPLOAD_FOLDER.mkdir(parents=True)
