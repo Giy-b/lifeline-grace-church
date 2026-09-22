@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -14,6 +14,8 @@ import sys
 import asyncio
 from pathlib import Path
 from datetime import datetime, timedelta, date
+import cloudinary
+import cloudinary.uploader
 
 
 logger = logging.getLogger("lifeline_grace.api")
@@ -27,6 +29,39 @@ media_cleanup_task = None
 
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploads"
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
+
+
+def upload_gallery_image(file: UploadFile, folder: str) -> tuple[str, str]:
+    """Upload a gallery image to persistent Cloudinary storage."""
+    if not all(
+        [
+            os.getenv("CLOUDINARY_CLOUD_NAME"),
+            os.getenv("CLOUDINARY_API_KEY"),
+            os.getenv("CLOUDINARY_API_SECRET"),
+        ]
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="Cloudinary is not configured. Add the Cloudinary environment variables to the backend.",
+        )
+
+    try:
+        uploaded = cloudinary.uploader.upload(
+            file.file,
+            folder=folder,
+            resource_type="image",
+        )
+        return uploaded["secure_url"], uploaded["public_id"]
+    except Exception as exc:
+        logger.exception("Cloudinary gallery upload failed")
+        raise HTTPException(status_code=502, detail="Image upload failed. Please try again.") from exc
 
 if not UPLOAD_FOLDER.exists():
     UPLOAD_FOLDER.mkdir(parents=True)
@@ -443,6 +478,7 @@ def ensure_core_tables():
                     branch VARCHAR(100) NOT NULL,
                     image_name VARCHAR(255),
                     image_path VARCHAR(255),
+                    cloudinary_public_id VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -455,6 +491,7 @@ def ensure_core_tables():
                     id {id_column},
                     image_name VARCHAR(255),
                     image_path VARCHAR(255),
+                    cloudinary_public_id VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -909,6 +946,22 @@ def add_column_if_missing(connection, table_name: str, column_name: str, column_
     )
 
 
+def ensure_gallery_cloudinary_columns():
+    with engine.begin() as connection:
+        add_column_if_missing(
+            connection,
+            "home_gallery",
+            "cloudinary_public_id",
+            "VARCHAR(255)",
+        )
+        add_column_if_missing(
+            connection,
+            "branch_gallery",
+            "cloudinary_public_id",
+            "VARCHAR(255)",
+        )
+
+
 def ensure_finance_reporting_tables():
     id_column = (
         "INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -977,6 +1030,7 @@ def ensure_finance_reporting_tables():
 
 
 ensure_core_tables()
+ensure_gallery_cloudinary_columns()
 # Create this table during schema initialization so any future column
 # migrations against it cannot run before the table exists.
 ensure_media_library_table()
@@ -3435,8 +3489,8 @@ def get_home_gallery():
     with engine.connect() as connection:
         result = connection.execute(
             text("""
-                SELECT id, image_name, image_path
-                FROM home_gallery
+            SELECT id, image_name, image_path
+            FROM home_gallery
                 ORDER BY id DESC
             """)
         )
@@ -3454,19 +3508,19 @@ def get_home_gallery():
 @app.post("/upload-home-images")
 async def upload_home_images(files: List[UploadFile] = File(...)):
     for file in files:
-        filename = f"{uuid.uuid4()}_{file.filename}"
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        image_url, public_id = upload_gallery_image(file, "lifeline-grace-church/home-gallery")
 
         with engine.begin() as connection:
             connection.execute(
                 text("""
-                    INSERT INTO home_gallery (image_name, image_path)
-                    VALUES (:image_name, :image_path)
+                    INSERT INTO home_gallery (image_name, image_path, cloudinary_public_id)
+                    VALUES (:image_name, :image_path, :cloudinary_public_id)
                 """),
-                {"image_name": file.filename, "image_path": filename},
+                {
+                    "image_name": file.filename,
+                    "image_path": image_url,
+                    "cloudinary_public_id": public_id,
+                },
             )
 
     return {"message": "Home gallery images uploaded successfully"}
@@ -3476,16 +3530,22 @@ async def upload_home_images(files: List[UploadFile] = File(...)):
 def delete_home_image(image_id: int):
     with engine.begin() as connection:
         image = connection.execute(
-            text("SELECT image_path FROM home_gallery WHERE id = :id"),
+            text(
+                "SELECT image_path, cloudinary_public_id "
+                "FROM home_gallery WHERE id = :id"
+            ),
             {"id": image_id},
         ).fetchone()
 
         if not image:
             return {"message": "Image not found"}
 
-        file_path = os.path.join(UPLOAD_FOLDER, image.image_path)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if image.cloudinary_public_id:
+            cloudinary.uploader.destroy(image.cloudinary_public_id, resource_type="image")
+        else:
+            file_path = os.path.join(UPLOAD_FOLDER, image.image_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
         connection.execute(
             text("DELETE FROM home_gallery WHERE id = :id"),
@@ -3559,45 +3619,10 @@ async def upload_branch_images(
 
 
     for file in files:
-
-
-        filename = (
-
-            str(uuid.uuid4())
-
-            +
-
-            "_"
-
-            +
-
-            file.filename
-
+        image_url, public_id = upload_gallery_image(
+            file,
+            f"lifeline-grace-church/branch-gallery/{branch.lower()}",
         )
-
-
-        file_path = os.path.join(
-
-            UPLOAD_FOLDER,
-
-            filename
-
-        )
-
-
-
-        with open(file_path,"wb") as buffer:
-
-
-            shutil.copyfileobj(
-
-                file.file,
-
-                buffer
-
-            )
-
-
 
 
         with engine.begin() as connection:
@@ -3616,7 +3641,9 @@ async def upload_branch_images(
 
                 image_name,
 
-                image_path
+                image_path,
+
+                cloudinary_public_id
 
                 )
 
@@ -3628,7 +3655,9 @@ async def upload_branch_images(
 
                 :image_name,
 
-                :image_path
+                :image_path,
+
+                :cloudinary_public_id
 
                 )
 
@@ -3642,7 +3671,9 @@ async def upload_branch_images(
 
                 "image_name":file.filename,
 
-                "image_path":filename
+                "image_path":image_url,
+
+                "cloudinary_public_id":public_id
 
                 }
 
@@ -3677,7 +3708,7 @@ def delete_branch_image(image_id:int):
 
             text("""
 
-            SELECT image_path
+            SELECT image_path, cloudinary_public_id
 
             FROM branch_gallery
 
@@ -3696,18 +3727,16 @@ def delete_branch_image(image_id:int):
         if image:
 
 
-            file_path = os.path.join(
+            if image.cloudinary_public_id:
+                cloudinary.uploader.destroy(
+                    image.cloudinary_public_id,
+                    resource_type="image",
+                )
+            else:
+                file_path = os.path.join(UPLOAD_FOLDER, image.image_path)
 
-                UPLOAD_FOLDER,
-
-                image.image_path
-
-            )
-
-
-            if os.path.exists(file_path):
-
-                os.remove(file_path)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
 
 
 

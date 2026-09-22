@@ -38,6 +38,11 @@ type BranchImage = {
   image_path: string;
 };
 
+const galleryImageUrl = (imagePath: string) =>
+  imagePath.startsWith("https://")
+    ? imagePath
+    : `${API_BASE_URL}/uploads/${imagePath}`;
+
 const validPageRoutes = new Set([
   "home",
   "members-portal-dashboard",
@@ -197,7 +202,7 @@ useEffect(() => {
     .then((data) => {
       setGalleryImages(
         data.map((image: BranchImage) =>
-          `${API_BASE_URL}/uploads/${image.image_path}`
+          galleryImageUrl(image.image_path)
         )
       );
       setCurrentImage(0);
@@ -1334,9 +1339,7 @@ branchImages.length > 0 ?
 
 <img
 
-src={
-`${API_BASE_URL}/uploads/${branchImages[branchImageIndex].image_path}`
-}
+src={galleryImageUrl(branchImages[branchImageIndex].image_path)}
 
 
 style={{

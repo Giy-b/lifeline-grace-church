@@ -11,6 +11,11 @@ type ManageHomeGalleryProps = {
   setPage: (page: string) => void;
 };
 
+const galleryImageUrl = (imagePath: string) =>
+  imagePath.startsWith("https://")
+    ? imagePath
+    : `${API_BASE_URL}/uploads/${imagePath}`;
+
 export default function ManageHomeGallery({ setPage }: ManageHomeGalleryProps) {
   const [images, setImages] = useState<HomeImage[]>([]);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
@@ -72,7 +77,7 @@ export default function ManageHomeGallery({ setPage }: ManageHomeGalleryProps) {
               textAlign: "left",
             }}
           >
-            <img src={`${API_BASE_URL}/uploads/${image.image_path}`} alt={image.image_name} style={{ width: "100%", height: "220px", objectFit: "cover", display: "block" }} />
+            <img src={galleryImageUrl(image.image_path)} alt={image.image_name} style={{ width: "100%", height: "220px", objectFit: "cover", display: "block" }} />
             <span style={{ display: "block", padding: "12px", textAlign: "center", color: "#111827", fontWeight: "bold" }}>
               {selectedImages.includes(image.id) ? "Selected" : "Click to select"}
             </span>

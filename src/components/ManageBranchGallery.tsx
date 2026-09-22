@@ -6,6 +6,11 @@ type ManageBranchGalleryProps = {
   setPage: (page: string) => void;
 };
 
+const galleryImageUrl = (imagePath: string) =>
+  imagePath.startsWith("https://")
+    ? imagePath
+    : `${API_BASE_URL}/uploads/${imagePath}`;
+
 export default function ManageBranchGallery({
   selectedBranch,
   setPage,
@@ -109,7 +114,7 @@ export default function ManageBranchGallery({
             }}
           >
             <img
-              src={`${API_BASE_URL}/uploads/${image.image_path}`}
+              src={galleryImageUrl(image.image_path)}
               style={{
                 width: "100%",
                 height: "220px",
