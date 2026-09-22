@@ -202,7 +202,11 @@ export default function MembersDashboard({
 
     const data = await response.json();
     event.target.value = "";
-    alert(data.message);
+    alert(
+      response.ok
+        ? data.message || "Branch gallery images uploaded successfully."
+        : data.detail || data.message || "Branch gallery upload failed."
+    );
   };
 
   const uploadHomeGallery = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,7 +222,11 @@ export default function MembersDashboard({
 
     const data = await response.json();
     event.target.value = "";
-    alert(data.message);
+    alert(
+      response.ok
+        ? data.message || "Home gallery images uploaded successfully."
+        : data.detail || data.message || "Home gallery upload failed."
+    );
   };
 
   return (
